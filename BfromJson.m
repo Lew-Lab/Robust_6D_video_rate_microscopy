@@ -1,8 +1,8 @@
 % MVR json config test
 clc; close all; clear;
-addpath utils;
+addpath matlabutils;
 
-fname = "data\systemParMVR.json"; % json file name
+fname = "systemconfigs\systemParMVR.json"; % json file name
 fid = fopen(fname); % open json file
 raw = fread(fid,inf); % read json file 
 str = char(raw');
@@ -12,9 +12,10 @@ systemPar = jsondecode(str); % decode json file contents into systemPar struct
 % create zList from systemPar zRange and zStep
 systemPar.zList = round(systemPar.zRange(1):systemPar.zStep:systemPar.zRange(2),11); 
 
-%% Generate and save: Basis images and basis image gradients 
+%% Generate: Basis images and basis image gradients 
 
 wb = waitbar(0,'basis generation step (1/3) 0%');
 Bstruct = MVRbasis_v4(systemPar,wb);
 
-save(['data\B_ZScanned_zf1200_' num2str(systemPar.PSFsz)],'Bstruct','systemPar');
+%% Save basis images & gradients + system parameters
+save(['precomputed_basis\B_ZScanned_zf1200_' num2str(systemPar.PSFsz)],'Bstruct','systemPar');
