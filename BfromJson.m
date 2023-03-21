@@ -18,4 +18,4 @@ wb = waitbar(0,'basis generation step (1/3) 0%');
 Bstruct = MVRbasis_v4(systemPar,wb);
 
 %% Save basis images & gradients + system parameters
-save(['precomputed_basis\B_ZScanned_zf1200_' num2str(systemPar.PSFsz)],'Bstruct','systemPar');
+save(['B_ZScanned_zf1200_' num2str(systemPar.PSFsz)],'Bstruct','systemPar');

@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.collections as mc
+from scipy.io import loadmat, savemat
 
 def create_sphere(obj_w, obj_h, obj_d, radius, sigma, orientation=True):
 
@@ -30,6 +31,13 @@ def create_sphere(obj_w, obj_h, obj_d, radius, sigma, orientation=True):
 
     return sphere
 
-if __name__ == '__main__':
-    sphere = create_sphere(100,100,100,40,0.5)
-    plot.plot_obj_dipole(sphere, 'z', 0.5)
+if __name__ == "__main__":
+    object = create_sphere(101,101,101,45,0.5)
+    object = np.transpose(object, (0,3,1,2))
+    object_downsample = np.zeros((6,51,101,101))
+    idx = 0
+    for i in range (51):
+        object_downsample[:,i,:,:] = object[:,idx,:,:]
+        idx += 2
+
+    savemat('sphere_obj_101_51.mat',{'sphere_obj_101_51': object_downsample})
