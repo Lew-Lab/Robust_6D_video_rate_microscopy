@@ -1,32 +1,41 @@
 %% generate mat form struct
-psfsize = systemPar.PSFsz; % set the size of the DSF
-zsize = length(systemPar.zList);
-cells = Bstruct.Blist;
-dsf_raMVR = zeros(8,6,zsize,psfsize,psfsize);
+psfsize = Microscopy.image_size; % set the size of the DSF
+zsize = length(Microscopy.z2);
+dsf_pixOL = zeros(2,6,zsize,psfsize,psfsize);
 
 for h = 1:zsize
-    temp = cell2mat(cells(h));
-    for o = 1:6
-        for c = 1:8
-            dsf_raMVR(c,o,h,:,:) = squeeze(temp(:,(c-1)*psfsize+1:c*psfsize,o));
-        end
+    Bxx = cell2mat(Bstruct.Bxx(h));
+    Byy = cell2mat(Bstruct.Byy(h));
+    Bzz = cell2mat(Bstruct.Bzz(h));
+    Bxy = cell2mat(Bstruct.Bxy(h));
+    Bxz = cell2mat(Bstruct.Bxz(h));
+    Byz = cell2mat(Bstruct.Byz(h));
+    for c = 1:2
+        dsf_pixOL(c,1,h,:,:) = Bxx(:,45*(c-1)+1:45*(c-1)+45);
+        dsf_pixOL(c,2,h,:,:) = Byy(:,45*(c-1)+1:45*(c-1)+45);
+        dsf_pixOL(c,3,h,:,:) = Bzz(:,45*(c-1)+1:45*(c-1)+45);
+        dsf_pixOL(c,4,h,:,:) = Bxy(:,45*(c-1)+1:45*(c-1)+45);
+        dsf_pixOL(c,5,h,:,:) = Bxz(:,45*(c-1)+1:45*(c-1)+45);
+        dsf_pixOL(c,6,h,:,:) = Byz(:,45*(c-1)+1:45*(c-1)+45);
     end
 end
 
+save(['dsf_pixOL_psfSZ_' num2str(psfsize) '_zstack_' num2str(zsize)], 'dsf_pixOL');
+
 %% generate the video
 
-videoname = 'dsf';
+videoname = 'dsf_pixOL';
 v = VideoWriter(videoname);
 v.FrameRate = 1;
 open(v);
 
 for k = 1:zsize
-    temp1 = cat(2,squeeze(dsf_raMVR(1,1,k,:,:)),squeeze(dsf_raMVR(2,1,k,:,:)),squeeze(dsf_raMVR(3,1,k,:,:)),squeeze(dsf_raMVR(4,1,k,:,:)),squeeze(dsf_raMVR(5,1,k,:,:)),squeeze(dsf_raMVR(6,1,k,:,:)),squeeze(dsf_raMVR(7,1,k,:,:)),squeeze(dsf_raMVR(8,1,k,:,:)));
-    temp2 = cat(2,squeeze(dsf_raMVR(1,2,k,:,:)),squeeze(dsf_raMVR(2,2,k,:,:)),squeeze(dsf_raMVR(3,2,k,:,:)),squeeze(dsf_raMVR(4,2,k,:,:)),squeeze(dsf_raMVR(5,2,k,:,:)),squeeze(dsf_raMVR(6,2,k,:,:)),squeeze(dsf_raMVR(7,2,k,:,:)),squeeze(dsf_raMVR(8,2,k,:,:)));
-    temp3 = cat(2,squeeze(dsf_raMVR(1,3,k,:,:)),squeeze(dsf_raMVR(2,3,k,:,:)),squeeze(dsf_raMVR(3,3,k,:,:)),squeeze(dsf_raMVR(4,3,k,:,:)),squeeze(dsf_raMVR(5,3,k,:,:)),squeeze(dsf_raMVR(6,3,k,:,:)),squeeze(dsf_raMVR(7,3,k,:,:)),squeeze(dsf_raMVR(8,3,k,:,:)));
-    temp4 = cat(2,squeeze(dsf_raMVR(1,4,k,:,:)),squeeze(dsf_raMVR(2,4,k,:,:)),squeeze(dsf_raMVR(3,4,k,:,:)),squeeze(dsf_raMVR(4,4,k,:,:)),squeeze(dsf_raMVR(5,4,k,:,:)),squeeze(dsf_raMVR(6,4,k,:,:)),squeeze(dsf_raMVR(7,4,k,:,:)),squeeze(dsf_raMVR(8,4,k,:,:)));
-    temp5 = cat(2,squeeze(dsf_raMVR(1,5,k,:,:)),squeeze(dsf_raMVR(2,5,k,:,:)),squeeze(dsf_raMVR(3,5,k,:,:)),squeeze(dsf_raMVR(4,5,k,:,:)),squeeze(dsf_raMVR(5,5,k,:,:)),squeeze(dsf_raMVR(6,5,k,:,:)),squeeze(dsf_raMVR(7,5,k,:,:)),squeeze(dsf_raMVR(8,5,k,:,:)));
-    temp6 = cat(2,squeeze(dsf_raMVR(1,6,k,:,:)),squeeze(dsf_raMVR(2,6,k,:,:)),squeeze(dsf_raMVR(3,6,k,:,:)),squeeze(dsf_raMVR(4,6,k,:,:)),squeeze(dsf_raMVR(5,6,k,:,:)),squeeze(dsf_raMVR(6,6,k,:,:)),squeeze(dsf_raMVR(7,6,k,:,:)),squeeze(dsf_raMVR(8,6,k,:,:)));
+    temp1 = cat(2,squeeze(dsf_pixOL(1,1,k,:,:)),squeeze(dsf_pixOL(2,1,k,:,:)));
+    temp2 = cat(2,squeeze(dsf_pixOL(1,2,k,:,:)),squeeze(dsf_pixOL(2,2,k,:,:)));
+    temp3 = cat(2,squeeze(dsf_pixOL(1,3,k,:,:)),squeeze(dsf_pixOL(2,3,k,:,:)));
+    temp4 = cat(2,squeeze(dsf_pixOL(1,4,k,:,:)),squeeze(dsf_pixOL(2,4,k,:,:)));
+    temp5 = cat(2,squeeze(dsf_pixOL(1,5,k,:,:)),squeeze(dsf_pixOL(2,5,k,:,:)));
+    temp6 = cat(2,squeeze(dsf_pixOL(1,6,k,:,:)),squeeze(dsf_pixOL(2,6,k,:,:)));
     img = cat(1,temp1,temp2,temp3,temp4,temp5,temp6);
     imagesc(img);
     xlabel('second moments');

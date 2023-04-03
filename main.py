@@ -17,7 +17,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Using ' + device)
 
 ### document setup ###
-psf_file = 'dsf_pixOL_45_23_1' # channel number x orientation x Z x X x Y
+psf_file = 'dsf_raMVR_psfSZ_181_zstack_15' # channel number x orientation x Z x X x Y
 object_file = 'sphere_obj_89_23' # orientation x Z x X x Y
 image_file = ''
 
@@ -54,6 +54,6 @@ obj_est, loss = gpu.estimate(psf, initial, img, optim_param['learning_rate'], op
 img_est = model_cpu.forward(obj_est)
 
 obj_est = np.transpose(obj_est, (0,2,3,1))
-plot.plot_obj_voxel(obj_est,'z',0.5)
+plot.plot_obj_voxel(obj_est,'z',0.1)
 
 plot.plot_img(img_est, 'Reconstructed image')
