@@ -1,5 +1,6 @@
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:1024"
 
 import torch
 import torch.optim
@@ -17,13 +18,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Using ' + device)
 
 ### document setup ###
-<<<<<<< Updated upstream
 psf_file = 'dsf_raMVR_61_51' # channel number x orientation x Z x X x Y
 object_file = 'sphere_obj_101_51' # orientation x Z x X x Y
-=======
-psf_file = 'dsf_pixOL_45_23' # channel number x orientation x Z x X x Y
-object_file = 'sphere_obj_89_23' # orientation x Z x X x Y
->>>>>>> Stashed changes
 image_file = ''
 
 ### hyperparams setup ###
