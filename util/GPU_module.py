@@ -33,8 +33,8 @@ class smolm(nn.Module):
         self.obj_size['height'] = obj_size[3]
 
         # dimension check
-        if self.psf_size['orientation'] != self.obj_size['orientation']:
-            raise Exception('The number of orientation moments does not match')
+        # if self.psf_size['orientation'] != self.obj_size['orientation']:
+        #     raise Exception('The number of orientation moments does not match')
         if self.psf_size['depth'] != self.obj_size['depth']:
             raise Exception('The number of z stack does not match')
         
@@ -57,7 +57,25 @@ class smolm(nn.Module):
     def forward(self, obj):
         
         # simulate the image
-        obj_fft = fft.rfft2(fft.ifftshift(obj, (2,3)))
+
+        if (self.obj_size['orientation'] == 4):
+            s = obj[0,...]
+            mu_x = torch.cos(obj[1,...])*torch.sin(obj[2,...])
+            mu_y = torch.cos(obj[1,...])*torch.sin(obj[2,...])
+            mu_z = torch.cos(obj[2,...])
+            wobble = obj[3,...]
+            gamma = 1-3*wobble/(3*torch.pi)+wobble**2/(8*torch.pi**2)
+            obj_6d = torch.zeros((6,self.obj_size['depth'],self.obj_size['width'],self.obj_size['height'])).to(self.device)
+            obj_6d[0,...] = s*gamma*mu_x**2+(1-gamma)/3
+            obj_6d[1,...] = s*gamma*mu_x**2+(1-gamma)/3
+            obj_6d[2,...] = s*gamma*mu_x**2+(1-gamma)/3
+            obj_6d[3,...] = s*gamma*mu_x*mu_y
+            obj_6d[4,...] = s*gamma*mu_x*mu_z
+            obj_6d[5,...] = s*gamma*mu_y*mu_z
+        else:
+            obj_6d = obj
+
+        obj_fft = fft.rfft2(fft.ifftshift(obj_6d, (2,3)))
         img_fft = self.psf_fft * obj_fft
         img = fft.ifftshift(fft.irfft2(img_fft), (3,4))
         img = torch.sum(img, 1, keepdim=False)
@@ -69,9 +87,9 @@ class smolm(nn.Module):
 def estimate(psf, obj, img_true, lr, max_iter, lambda_L1, lambda_TV, device):
 
     # convert variables from numpy to tensor
-    obj = torch.tensor(obj, dtype=torch.float32, device=device, requires_grad=True)
-    img_true = torch.tensor(img_true, dtype=torch.float32, device=device, requires_grad=False)
-    psf = torch.tensor(psf, dtype=torch.float32, device=device, requires_grad=False)
+    obj = torch.tensor(obj, dtype=torch.float32, device=device, requires_grad=True).to(device)
+    img_true = torch.tensor(img_true, dtype=torch.float32, device=device, requires_grad=False).to(device)
+    psf = torch.tensor(psf, dtype=torch.float32, device=device, requires_grad=False).to(device)
 
     # run the model
     model = smolm(psf, obj.shape, device)
@@ -98,7 +116,7 @@ def estimate(psf, obj, img_true, lr, max_iter, lambda_L1, lambda_TV, device):
         loss_L1 = loss_sparsity(obj)
         loss_TV = loss_smoothness(obj)
         loss_pos = constraint_positive_mii(obj)
-        loss = loss_lsq + lambda_L1*loss_L1 + lambda_TV*loss_TV + loss_pos
+        loss = loss_lsq + lambda_L1*loss_L1 + lambda_TV*loss_TV
 
         # store the loss
         arr_loss_lsq[i] = loss_lsq
@@ -134,9 +152,47 @@ def loss_smoothness(obj):
     dfdy = torch.abs(obj[:,1:,:,:]-obj[:,0:-1,:,:])
     tv = (torch.mean(dfdz)+torch.mean(dfdx)+torch.mean(dfdy))/3
     return tv
-    
+
+#### indicator functions
+
 def constraint_positive_mii(obj):
     soft_indicator = torch.zeros(*obj[:3,...].shape)
     soft_indicator = 1/torch.exp(-obj[:3,...]**2)-1
     soft_indicator[torch.where(torch.greater_equal(obj[:3,...],0))] = 0
     return torch.sum(soft_indicator)
+
+def constraint_positive_s(obj):
+    s = obj[0,...]
+    soft_indicator = 1/torch.exp(-s**2)-1
+    soft_indicator[torch.where(torch.greater_equal(s,0))] = 0
+    return torch.sum(soft_indicator)
+
+def constraint_wobble(obj):
+    wobble = obj[3,...]
+    soft_indicator = torch.zeros(wobble)
+    soft_indicator[torch.where(torch.greater_equal(wobble,2*torch.pi))] = 1/torch.exp(-(wobble-2*torch.pi)**2)-1
+    soft_indicator[torch.where(torch.less_equal(wobble,0))] = 1/torch.exp(-(wobble)**2)-1
+    return torch.sum(soft_indicator)
+
+### help functions
+
+def angle_to_second_moments(object_angle):
+
+    obj_size = dict()
+    obj_size['depth'] = object_angle.shape[1]
+    obj_size['depth'] = object_angle.shape[2]
+    obj_size['depth'] = object_angle.shape[3]
+
+    s = object_angle(object_angle[0,...])
+    mu_x = torch.cos(obj[1,...])*torch.sin(obj[2,...])
+    mu_y = torch.cos(obj[1,...])*torch.sin(obj[2,...])
+    mu_z = torch.cos(obj[2,...])
+    wobble = obj[3,...]
+    gamma = 1-3*wobble/(3*torch.pi)+wobble**2/(8*torch.pi**2)
+    obj = torch.zeros((6,obj_size['depth'],obj_size['width'],obj_size['height']))
+    obj[0,...] = s*gamma*mu_x**2+(1-gamma)/3
+    obj[1,...] = s*gamma*mu_x**2+(1-gamma)/3
+    obj[2,...] = s*gamma*mu_x**2+(1-gamma)/3
+    obj[3,...] = s*gamma*mu_x*mu_y
+    obj[4,...] = s*gamma*mu_x*mu_z
+    obj[5,...] = s*gamma*mu_y*mu_z
