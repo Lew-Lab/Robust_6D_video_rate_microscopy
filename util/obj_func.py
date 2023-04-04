@@ -32,12 +32,14 @@ def create_sphere(obj_w, obj_h, obj_d, radius, sigma, orientation=True):
     return sphere
 
 if __name__ == "__main__":
-    object = create_sphere(89,89,89,43,0.5)
+    object = create_sphere(61,61,61,20,0.5)
     object = np.transpose(object, (0,3,1,2))
-    object_downsample = np.zeros((6,23,89,89))
+    object_downsample = np.zeros((6,20,61,61))
     idx = 0
-    for i in range (23):
+    for i in range (20):
         object_downsample[:,i,:,:] = object[:,idx,:,:]
-        idx += 4
+        idx += 3
 
-    savemat('sphere_obj_89_23.mat',{'sphere_obj_89_23': object_downsample})
+    object_pad = np.pad(object_downsample,((0,0),(0,0),(30,30),(30,30)),constant_values=0)
+
+    savemat('sphere_obj_121_20.mat',{'sphere_obj_121_20': object_pad})

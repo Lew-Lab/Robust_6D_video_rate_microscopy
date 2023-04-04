@@ -18,8 +18,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Using ' + device)
 
 ### document setup ###
-psf_file = 'dsf_raMVR_61_51' # channel number x orientation x Z x X x Y
-object_file = 'sphere_obj_101_51' # orientation x Z x X x Y
+psf_file = 'dsf_raMVR_61_20' # channel number x orientation x Z x X x Y
+object_file = 'sphere_obj_121_20' # orientation x Z x X x Y
 image_file = ''
 
 ### hyperparams setup ###

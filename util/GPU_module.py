@@ -81,6 +81,8 @@ class smolm(nn.Module):
         img = torch.sum(img, 1, keepdim=False)
         img = torch.sum(img, 1, keepdim=False)
 
+        torch.cuda.empty_cache()
+
         return img
 
 
