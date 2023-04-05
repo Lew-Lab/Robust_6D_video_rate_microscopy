@@ -4,7 +4,6 @@ print(torch.__version__)
 import torch.nn as nn
 import torch.functional as F
 import torch.fft as fft
-import torchvision
 import sys
 import numpy as np
 from PIL import Image

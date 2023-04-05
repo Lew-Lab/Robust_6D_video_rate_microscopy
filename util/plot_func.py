@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.collections as mc
 import matplotlib as mpl
 
-def plot_obj_voxel(obj, slice_dim, slice_loc):
+def plot_obj_voxel(obj, slice_dim, slice_loc, filename):
 
     titles = ['mxx', 'myy', 'mzz', 'mxy', 'mxz', 'myz']
     fig, axs = plt.subplots(2,3)
@@ -27,6 +27,7 @@ def plot_obj_voxel(obj, slice_dim, slice_loc):
         ax.set_title(titles[i])
         fig.colorbar(temp, ax=ax, location='right')
 
+    fig.savefig(filename)
     plt.show()
 
     return
