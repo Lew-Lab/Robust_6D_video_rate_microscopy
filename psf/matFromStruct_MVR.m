@@ -20,7 +20,7 @@ save(['dsf_raMVR_psfSZ_' num2str(psfsize) '_zstack_' num2str(zsize)], 'dsf');
 
 %% generate the video
 
-videoname = 'dsf_MVR';
+videoname = 'dsf_MVR_121_20';
 v = VideoWriter(videoname);
 v.FrameRate = 1;
 open(v);

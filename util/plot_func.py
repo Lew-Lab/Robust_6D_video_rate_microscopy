@@ -1,3 +1,7 @@
+import glob
+import os
+import subprocess
+from matplotlib import cm
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.collections as mc
@@ -10,13 +14,13 @@ def plot_obj_voxel(obj, slice_dim, slice_loc, filename):
 
     if slice_dim == 'x':
         slice = obj[:,np.int16(obj.shape[1]*slice_loc+1),:,:]
-        fig.suptitle('Slice at x=%.1fwidth of the object' % slice_loc)
+        fig.suptitle('Slice at x=%.2fwidth of the object' % slice_loc)
     elif slice_dim == 'y':
         slice = obj[:,:,np.int16(obj.shape[2]*slice_loc+1),:]
-        fig.suptitle('Slice at y=%.1fheight of the object' % slice_loc)
+        fig.suptitle('Slice at y=%.2fheight of the object' % slice_loc)
     elif slice_dim == 'z':
         slice = obj[:,:,:,np.int16(obj.shape[3]*slice_loc+1)]
-        fig.suptitle('Slice at z=%.1fdepth of the object' % slice_loc)
+        fig.suptitle('Slice at z=%.2fdepth of the object' % slice_loc)
     else: 
         raise Exception ('Dimension of the section slice needs to be specified.')
 
@@ -27,9 +31,11 @@ def plot_obj_voxel(obj, slice_dim, slice_loc, filename):
         ax.set_title(titles[i])
         fig.colorbar(temp, ax=ax, location='right')
 
+    manager = plt.get_current_fig_manager()
+    manager.full_screen_toggle()
     plt.tight_layout()
     fig.savefig(filename)
-    plt.show()
+    # plt.show()
 
     return
 
@@ -75,7 +81,10 @@ def plot_img(img, title_name, filename):
         axs[1][3].set_axis_off()
         fig.colorbar(temp, ax=axs[1][3], location='right')
         plt.suptitle(title_name)
-        plt.show()
+        # plt.show()
+
+    manager = plt.get_current_fig_manager()
+    manager.full_screen_toggle()
     plt.tight_layout()
     fig.savefig(filename)
 
@@ -124,3 +133,18 @@ def plot_obj_dipole(obj, slice_dim, slice_loc):
     plt.show()
 
     return
+
+def zstack_video(img_zstack, folder):
+    zstack_size = len(img_zstack[0,:,0,0])
+    print(zstack_size)
+    for i in range(zstack_size):
+        img_zslice = img_zstack[:,i,:,:]
+        plot_img(img_zslice, 'Reconstructed z-slice #' +str(i+1), os.path.join(folder, 'Reconstructed z-slice #' +str(i+1)))
+        # plt.savefig(folder + "/%02d.png" % i)
+
+    #subprocess.call([
+        # 'ffmpeg', '-framerate', '8', '-i', 'file%02d.png', '-r', '30', '-pix_fmt', 'yuv420p',
+        # 'video_name.mp4'
+    # ])
+    # for file_name in glob.glob("*.png"):
+        # os.remove(file_name)
