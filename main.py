@@ -36,6 +36,7 @@ object = loadmat(os.path.join('object_plane', object_file+'.mat'))['sphere_obj_1
 object = np.transpose(object, (0,2,3,1))
 
 z_height = np.linspace(0,1,11)
+print(z_height)
 
 ### create directories to store object slice data (actual and estimated) if not previously created ###
 obj_slices_dir = os.path.join('obj_slices', object_file)
@@ -44,8 +45,11 @@ est_obj_slices_dir = os.path.join('est_obj_slices', object_file)
 if not os.path.exists(obj_slices_dir):
     os.mkdir(obj_slices_dir)
 
+if not os.path.exists(est_obj_slices_dir):
+    os.mkdir(est_obj_slices_dir)
+
 ### plot and save figures of actual object z-slices ###
-for i in range(len(z_height)):
+for i in range(len(z_height)-1):
     filename = os.path.join(obj_slices_dir, str(np.round(z_height[i], 3))+'.png')
     plot.plot_obj_voxel(object,'z',z_height[i], filename)
 
@@ -59,7 +63,8 @@ model_cpu = cpu.smolm(psf, object.shape)
 if image_file == '':
     img = model_cpu.forward(object)
 
-plot.plot_img(img, 'image')
+filename = os.path.join(obj_slices_dir, 'Object image.png')
+plot.plot_img(img, 'Object image', filename)
 
 ### deconvolution ###
 initial = np.random.rand(*object.shape)
@@ -71,8 +76,10 @@ img_est = model_cpu.forward(obj_est)
 obj_est = np.transpose(obj_est, (0,2,3,1))
 
 ### plot and save figures of estimated object z-slices ###
-for i in range(len(z_height)):
+for i in range(len(z_height)-1):
     filename = os.path.join(est_obj_slices_dir, str(np.round(z_height[i], 3))+'.png')
     plot.plot_obj_voxel(obj_est,'z',z_height[i], filename)
 
-plot.plot_img(img_est, 'Reconstructed image')
+filename = os.path.join(est_obj_slices_dir, 'Reconstructed object image.png')
+plot.plot_img(img_est, 'Reconstructed object image', filename)
+

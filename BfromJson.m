@@ -18,8 +18,6 @@ wb = waitbar(0,'basis generation step (1/3) 0%');
 Bstruct = MVRbasis_v4(systemPar,wb);
 
 %% Save basis images & gradients + system parameters
-<<<<<<< Updated upstream
+
 save(['B_ZScanned_zf' num2str(systemPar.zf*1e9) '_PSFsz' num2str(systemPar.PSFsz)],'Bstruct','systemPar','-v7.3');
-=======
-save(['psf' filesep 'B_ZScanned_zf1200_' num2str(systemPar.PSFsz)],'Bstruct','systemPar');
->>>>>>> Stashed changes
+

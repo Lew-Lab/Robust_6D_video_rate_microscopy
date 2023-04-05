@@ -17,10 +17,7 @@ end
 dsf = dsf_raMVR;
 
 save(['dsf_raMVR_psfSZ_' num2str(psfsize) '_zstack_' num2str(zsize)], 'dsf');
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
 %% generate the video
 
 videoname = 'dsf_MVR';

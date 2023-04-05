@@ -27,12 +27,13 @@ def plot_obj_voxel(obj, slice_dim, slice_loc, filename):
         ax.set_title(titles[i])
         fig.colorbar(temp, ax=ax, location='right')
 
+    plt.tight_layout()
     fig.savefig(filename)
     plt.show()
 
     return
 
-def plot_img(img, title_name):
+def plot_img(img, title_name, filename):
     
     channel = img.shape[0]
     
@@ -75,6 +76,8 @@ def plot_img(img, title_name):
         fig.colorbar(temp, ax=axs[1][3], location='right')
         plt.suptitle(title_name)
         plt.show()
+    plt.tight_layout()
+    fig.savefig(filename)
 
     return
 

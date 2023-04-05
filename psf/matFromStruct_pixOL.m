@@ -20,11 +20,7 @@ for h = 1:zsize
     end
 end
 
-<<<<<<< Updated upstream
-=======
 dsf = dsf_pixOL;
-
->>>>>>> Stashed changes
 save(['dsf_pixOL_psfSZ_' num2str(psfsize) '_zstack_' num2str(zsize)], 'dsf');
 
 %% generate the video
