@@ -87,7 +87,7 @@ def estimate(psf, obj, img_true, lr, max_iter, lambda_L1, lambda_TV, device):
     optimizer = torch.optim.Adam([obj], lr)
 
     # least square loss function
-    least_sq = nn.MSELoss(reduction='mean').type(torch.float32)
+    least_sq = nn.MSELoss(reduction='sum').type(torch.float32)
 
     for i in range (max_iter): 
 
@@ -123,16 +123,22 @@ def estimate(psf, obj, img_true, lr, max_iter, lambda_L1, lambda_TV, device):
 
     return obj, loss_final
 
-### regularization functions
+### loss functions
+
+def loss_MSE(img_est, img_true):
+    return torch.sum((img_est-img_true)**2)
 
 def loss_sparsity(obj):
-    return torch.mean(torch.abs(obj))
+    return torch.sum(torch.abs(obj))
 
 def loss_smoothness(obj):
-    dfdz = torch.abs(obj[:,1:,:,:]-obj[:,0:-1,:,:])
-    dfdx = torch.abs(obj[:,1:,:,:]-obj[:,0:-1,:,:])
-    dfdy = torch.abs(obj[:,1:,:,:]-obj[:,0:-1,:,:])
-    tv = (torch.mean(dfdz)+torch.mean(dfdx)+torch.mean(dfdy))/3
+    if obj.shape[1] == 1:
+        dfdz = 0
+    else:
+        dfdz = torch.sum(torch.abs(obj[:,1:,:,:]-obj[:,0:-1,:,:]))
+    dfdx = torch.sum(torch.abs(obj[:,:,1:,:]-obj[:,:,0:-1,:]))
+    dfdy = torch.sum(torch.abs(obj[:,:,:,1:]-obj[:,:,:,0:-1]))
+    tv = (dfdz+dfdx+dfdy)/3
     return tv
     
 def constraint_positive_mii(obj):
