@@ -3,20 +3,20 @@ import matplotlib.pyplot as plt
 import matplotlib.collections as mc
 import matplotlib as mpl
 
-def plot_obj_voxel(obj, slice_dim, slice_loc):
+def plot_obj_voxel(obj, slice_dim, slice_loc, title=''):
 
     titles = ['mxx', 'myy', 'mzz', 'mxy', 'mxz', 'myz']
     fig, axs = plt.subplots(2,3)
 
     if slice_dim == 'x':
-        slice = obj[:,np.int16(obj.shape[1]*slice_loc+1),:,:]
-        fig.suptitle('Slice at x=%.1fwidth of the object' % slice_loc)
+        slice = obj[:,:,np.int16(obj.shape[2]*slice_loc),:]
+        fig.suptitle(title+': Slice at x=%.1f' % slice_loc)
     elif slice_dim == 'y':
-        slice = obj[:,:,np.int16(obj.shape[2]*slice_loc+1),:]
-        fig.suptitle('Slice at y=%.1fheight of the object' % slice_loc)
+        slice = obj[:,:,:,np.int16(obj.shape[3]*slice_loc)]
+        fig.suptitle(title+': Slice at y=%.1f' % slice_loc)
     elif slice_dim == 'z':
-        slice = obj[:,:,:,np.int16(obj.shape[3]*slice_loc+1)]
-        fig.suptitle('Slice at z=%.1fdepth of the object' % slice_loc)
+        slice = obj[:,np.int16(obj.shape[1]*slice_loc),:,:]
+        fig.suptitle(title+': Slice at z=%.1f' % slice_loc)
     else: 
         raise Exception ('Dimension of the section slice needs to be specified.')
 
