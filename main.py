@@ -17,22 +17,22 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Using ' + device)
 
 ### document setup ###
-psf_file = 'dsf_raMVR_psfSZ_181_zstack_20' # channel number x orientation x Z x X x Y
-object_file = 'sphere_obj_181_20' # orientation x Z x X x Y
+psf_file = 'dsf_raMVR_psfSZ_61_zstack_20' # channel number x orientation x Z x X x Y
+object_file = 'sphere_obj_61_20' # orientation x Z x X x Y
 image_file = ''
 
 ### hyperparams setup ###
 optim_param = dict()
 optim_param['learning_rate'] = 0.01
-optim_param['max_iter'] = 1000
+optim_param['max_iter'] = 500
 optim_param['lambda_L1'] = 0
 optim_param['lambda_TV'] = 0
 
 ### PSF ###
-psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
+psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf_raMVR_61_20']
 
 ### load .mat file corresponding to object data###
-object = loadmat(os.path.join('object_plane', object_file+'.mat'))['sphere_obj']
+object = loadmat(os.path.join('objects', object_file+'.mat'))['sphere_obj_61_20']
 object = np.transpose(object, (0,2,3,1))
 
 z_height = np.linspace(0,0.95,20)
@@ -59,9 +59,9 @@ if not os.path.exists(est_obj_img_slices_dir):
     os.mkdir(est_obj_img_slices_dir)
 
 ### plot and save figures of actual object z-slices ###
-# for i in range(len(z_height)-1):
-    # filename = os.path.join(obj_slices_dir, str(np.round(z_height[i], 3))+'.png')
-    # plot.plot_obj_voxel(object,'z',z_height[i], filename)
+for i in range(len(z_height)-1):
+    filename = os.path.join(obj_slices_dir, str(np.round(z_height[i], 3))+'.png')
+    plot.plot_obj_voxel(object,'z',z_height[i], filename)
 
 
 object = np.transpose(object, (0,3,1,2))
@@ -84,7 +84,7 @@ plot.zstack_video(img_zstack,obj_img_slices_dir)
 initial = np.random.rand(*object.shape)
 
 obj_est, loss = gpu.estimate(psf, initial, img, optim_param['learning_rate'], optim_param['max_iter'], optim_param['lambda_L1'], optim_param['lambda_TV'], device)
-# print(loss)
+# print(loss['total'])
 
 ### Generate an object image using estimated sphere data and save the object z-slices. ###
 img_est, img_est_zstack = model_cpu.forward(obj_est)
@@ -92,9 +92,9 @@ img_est, img_est_zstack = model_cpu.forward(obj_est)
 obj_est = np.transpose(obj_est, (0,2,3,1))
 
 ### plot and save figures of estimated object z-slices ###
-# for i in range(len(z_height)-1):
-#    filename = os.path.join(est_obj_slices_dir, str(np.round(z_height[i], 3))+'.png')
-#    plot.plot_obj_voxel(obj_est,'z',z_height[i], filename)
+for i in range(len(z_height)-1):
+    filename = os.path.join(est_obj_slices_dir, str(np.round(z_height[i], 3))+'.png')
+    plot.plot_obj_voxel(obj_est,'z',z_height[i], filename)
 
 # Plot estimated object image in 8 MVR channels.
 filename = os.path.join(est_obj_slices_dir, 'Reconstructed object image.png')

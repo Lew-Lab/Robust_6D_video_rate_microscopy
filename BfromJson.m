@@ -19,5 +19,5 @@ Bstruct = MVRbasis_v4(systemPar,wb);
 
 %% Save basis images & gradients + system parameters
 
-save(['B_ZScanned_zf' num2str(systemPar.zf*1e9) '_PSFsz' num2str(systemPar.PSFsz)],'Bstruct','systemPar','-v7.3');
+save(['psf' filesep 'B_ZScanned_zf' num2str(systemPar.zf*1e9) '_PSFsz' num2str(systemPar.PSFsz) '_zList' num2str(length(systemPar.zList))],'Bstruct','systemPar','-v7.3');
 
