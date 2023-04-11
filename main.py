@@ -44,28 +44,9 @@ if image_file == '':
 plot.plot_img(img, 'Image of circle')
 
 ### initialization ###
-# I will make it a function afterwards
-psf_iso = np.sum(psf[:,:3,:,:,:],axis=1,keepdims=True)/3
-object_iso = np.sum(object[:3,:,:,:],axis=0,keepdims=True)
-plt.imshow(object_iso[0,0,...])
-plt.colorbar()
-plt.title('mxx+myy+mzz')
-plt.show()
-model_cpu_iso = cpu.smolm(psf_iso, object_iso.shape)
-img_iso = model_cpu_iso.forward(object_iso)
-plot.plot_img(img, '(Bxx+Byy+Bzz)/3 convolve with (mxx+myy+mzz)')
-initial_iso = np.random.rand(*object_iso.shape)
-obj_est_iso, loss_iso = gpu.estimate(psf_iso, initial_iso, img_iso, 0.01, 300, 0, 0, device)
-img_est_iso = model_cpu_iso.forward(obj_est_iso)
-plt.imshow(obj_est_iso[0,0,...])
-plt.colorbar()
-plt.title('Estimation of (mxx+myy+mzz)')
-plt.show()
-plot.plot_img(img_est_iso, 'Reconstructed image of (mxx+myy+mzz)')
-initial = np.zeros(object.shape)
-initial[0,:,:,:] = obj_est_iso
-initial[1,:,:,:] = obj_est_iso
-initial[2,:,:,:] = obj_est_iso
+# Now it's a function
+
+initial = gpu.initialize(psf, object, img, device);
 
 ### deconvolution ###
 obj_est, loss = gpu.estimate(psf, initial, img, optim_param['learning_rate'], optim_param['max_iter'], optim_param['lambda_L1'], optim_param['lambda_TV'], device)

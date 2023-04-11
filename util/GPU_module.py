@@ -6,6 +6,7 @@ import torch.fft as fft
 import torchvision
 import sys
 import numpy as np
+import util.CPU_module as cpu
 from PIL import Image
 import matplotlib.pyplot as plt
 
@@ -64,6 +65,31 @@ class smolm(nn.Module):
         img = torch.sum(img, 1, keepdim=False)
 
         return img
+    
+def initialize(psf, object, img, device):
+    psf_iso = np.sum(psf[:,:3,:,:,:],axis=1,keepdims=True)/3
+    object_iso = np.sum(object[:3,:,:,:],axis=0,keepdims=True)
+    plt.imshow(object_iso[0,0,...])
+    plt.colorbar()
+    plt.title('mxx+myy+mzz')
+    plt.show()
+    model_cpu_iso = cpu.smolm(psf_iso, object_iso.shape)
+    img_iso = model_cpu_iso.forward(object_iso)
+    # plot.plot_img(img, '(Bxx+Byy+Bzz)/3 convolve with (mxx+myy+mzz)')
+    initial_iso = np.random.rand(*object_iso.shape)
+    obj_est_iso, loss_iso = estimate(psf_iso, initial_iso, img, 0.01, 300, 0, 0, device)
+    img_est_iso = model_cpu_iso.forward(obj_est_iso)
+    plt.imshow(obj_est_iso[0,0,...])
+    plt.colorbar()
+    # plt.title('Estimation of (mxx+myy+mzz)')
+    plt.show()
+    # plot.plot_img(img_est_iso, 'Reconstructed image of (mxx+myy+mzz)')
+    initial = np.zeros(object.shape)
+    initial[0,:,:,:] = obj_est_iso
+    initial[1,:,:,:] = obj_est_iso
+    initial[2,:,:,:] = obj_est_iso
+
+    return initial
 
 
 def estimate(psf, obj, img_true, lr, max_iter, lambda_L1, lambda_TV, device):
