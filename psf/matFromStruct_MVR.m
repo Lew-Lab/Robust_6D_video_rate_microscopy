@@ -1,5 +1,5 @@
 %% generate mat form struct
-load('B_ZScanned_zf650_PSFsz121_zList20.mat');
+load('B_ZScanned_zf650_PSFsz89_zList1.mat');
 psfsize = systemPar.PSFsz; % set the size of the DSF
 zsize = length(systemPar.zList);
 cells = Bstruct.Blist;
@@ -20,7 +20,7 @@ save(['dsf_raMVR_psfSZ_' num2str(psfsize) '_zstack_' num2str(zsize)], 'dsf');
 
 %% generate the video
 
-videoname = 'dsf_MVR_zf650_PSFsz121_zList20';
+videoname = 'dsf_MVR_zf650_PSFsz89_zList1';
 v = VideoWriter(videoname);
 v.FrameRate = 1;
 open(v);

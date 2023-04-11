@@ -17,7 +17,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Using ' + device)
 
 ### document setup ###
-psf_file = 'planar_pixOL' # channel number x orientation x Z x X x Y
+psf_file = 'dsf_raMVR_psfSZ_89_zstack_1' # channel number x orientation x Z x X x Y
 object_file = 'circle' # orientation x Z x X x Y
 image_file = ''
 
@@ -25,51 +25,20 @@ image_file = ''
 optim_param = dict()
 optim_param['learning_rate'] = 0.01
 optim_param['max_iter'] = 300
-optim_param['lambda_L1'] = 0.035
-optim_param['lambda_TV'] = 0.015
+optim_param['lambda_L1'] = 0.000
+optim_param['lambda_TV'] = 0.0003
 
 ### PSF ###
-psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf_raMVR_61_20']
+psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
 
-### load .mat file corresponding to object data###
-object = loadmat(os.path.join('objects', object_file+'.mat'))['sphere_obj_61_20']
-object = np.transpose(object, (0,2,3,1))
-
-z_height = np.linspace(0,0.95,20)
-print(z_height)
-print(len(z_height)-1)
-
-### create directories to store object & object image slice data (actual and estimated) if not previously created ###
-obj_slices_dir = os.path.join('obj_slices', object_file)
-obj_img_slices_dir = os.path.join('obj_img_slices', object_file)
-
-est_obj_slices_dir = os.path.join('est_obj_slices', object_file)
-est_obj_img_slices_dir = os.path.join('est_obj_img_slices', object_file)
-
-if not os.path.exists(obj_slices_dir):
-    os.mkdir(obj_slices_dir)
-
-if not os.path.exists(obj_img_slices_dir):
-    os.mkdir(obj_img_slices_dir)
-
-if not os.path.exists(est_obj_slices_dir):
-    os.mkdir(est_obj_slices_dir)
-
-if not os.path.exists(est_obj_img_slices_dir):
-    os.mkdir(est_obj_img_slices_dir)
-
-### plot and save figures of actual object z-slices ###
-for i in range(len(z_height)-1):
-    filename = os.path.join(obj_slices_dir, str(np.round(z_height[i], 3))+'.png')
-    plot.plot_obj_voxel(object,'z',z_height[i], filename)
-
-
-object = np.transpose(object, (0,3,1,2))
+### object domain ###
+object = loadmat(os.path.join('objects', object_file+'.mat'))['object']
+plot.plot_obj_voxel(object,'z',0.5)
 
 ### model setup ###
 model_cpu = cpu.smolm(psf, object.shape)
 
-### Generate an object image using ground truth data and save the object z-slices. ###
+### image domain ###
 if image_file == '':
     img = model_cpu.forward(object)
 plot.plot_img(img, 'Image of circle')
@@ -100,25 +69,6 @@ initial[2,:,:,:] = obj_est_iso
 
 ### deconvolution ###
 obj_est, loss = gpu.estimate(psf, initial, img, optim_param['learning_rate'], optim_param['max_iter'], optim_param['lambda_L1'], optim_param['lambda_TV'], device)
-# print(loss['total'])
-
-### Generate an object image using estimated sphere data and save the object z-slices. ###
-img_est, img_est_zstack = model_cpu.forward(obj_est)
-
-obj_est = np.transpose(obj_est, (0,2,3,1))
-
-### plot and save figures of estimated object z-slices ###
-for i in range(len(z_height)-1):
-    filename = os.path.join(est_obj_slices_dir, str(np.round(z_height[i], 3))+'.png')
-    plot.plot_obj_voxel(obj_est,'z',z_height[i], filename)
-
-# Plot estimated object image in 8 MVR channels.
-filename = os.path.join(est_obj_slices_dir, 'Reconstructed object image.png')
-plot.plot_img(img_est, 'Reconstructed object image', filename)
-
-# Generate and save z-stack of estimated object image in 8 MVR channels.
-plot.zstack_video(img_est_zstack,est_obj_img_slices_dir)
-
 
 print(loss)
 img_est = model_cpu.forward(obj_est)
