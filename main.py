@@ -17,8 +17,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Using ' + device)
 
 ### document setup ###
-psf_file = 'dsf_raMVR_psfSZ_89_zstack_1' # channel number x orientation x Z x X x Y
-object_file = 'circle' # orientation x Z x X x Y
+psf_file = 'dsf_raMVR_psfSZ_61_zstack_20' # channel number x orientation x Z x X x Y
+object_file = 'sphere_obj_121_20_1.3um' # orientation x Z x X x Y
 image_file = ''
 
 ### hyperparams setup ###
@@ -32,7 +32,8 @@ optim_param['lambda_TV'] = 0.0003
 psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
 
 ### object domain ###
-object = loadmat(os.path.join('objects', object_file+'.mat'))['object']
+object = loadmat(os.path.join('objects', object_file+'.mat'))['sphere_obj_121_20']
+
 plot.plot_obj_voxel(object,'z',0.5)
 
 ### model setup ###
@@ -51,7 +52,12 @@ initial = gpu.initialize(psf, object, img, device);
 ### deconvolution ###
 obj_est, loss = gpu.estimate(psf, initial, img, optim_param['learning_rate'], optim_param['max_iter'], optim_param['lambda_L1'], optim_param['lambda_TV'], device)
 
-print(loss)
+print(loss['total'][-1])
+print(loss['lsq'][-1])
+print(loss['L1'][-1])
+print(loss['constraint_positive_mii'][-1])
+print(loss['TV'][-1])
+
 img_est = model_cpu.forward(obj_est)
 plot.plot_obj_voxel(obj_est,'z',0.5,'Estimation of circle')
 plot.plot_img(img_est, 'Reconstructed image of circle')

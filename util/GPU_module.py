@@ -69,7 +69,7 @@ class smolm(nn.Module):
 def initialize(psf, object, img, device):
     psf_iso = np.sum(psf[:,:3,:,:,:],axis=1,keepdims=True)/3
     object_iso = np.sum(object[:3,:,:,:],axis=0,keepdims=True)
-    plt.imshow(object_iso[0,0,...])
+    plt.imshow(object_iso[0,2,...])
     plt.colorbar()
     plt.title('mxx+myy+mzz')
     plt.show()
@@ -79,7 +79,7 @@ def initialize(psf, object, img, device):
     initial_iso = np.random.rand(*object_iso.shape)
     obj_est_iso, loss_iso = estimate(psf_iso, initial_iso, img, 0.01, 300, 0, 0, device)
     img_est_iso = model_cpu_iso.forward(obj_est_iso)
-    plt.imshow(obj_est_iso[0,0,...])
+    plt.imshow(obj_est_iso[0,2,...])
     plt.colorbar()
     # plt.title('Estimation of (mxx+myy+mzz)')
     plt.show()
