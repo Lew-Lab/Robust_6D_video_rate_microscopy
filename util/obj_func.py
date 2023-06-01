@@ -31,13 +31,37 @@ def create_sphere(obj_w, obj_h, obj_d, radius, sigma, orientation=True):
 
     return sphere
 
-if __name__ == "__main__":
-    object = create_sphere(89,89,89,43,0.5)
-    object = np.transpose(object, (0,3,1,2))
-    object_downsample = np.zeros((6,23,89,89))
-    idx = 0
-    for i in range (23):
-        object_downsample[:,i,:,:] = object[:,idx,:,:]
-        idx += 4
 
-    savemat('sphere_obj_89_23.mat',{'sphere_obj_89_23': object_downsample})
+if __name__ == "__main__":
+    object = create_sphere(61,61,61,5,1)
+    object = np.transpose(object, (0,3,1,2))
+    # plt.imshow(object[0,30,...])
+    # plt.show()
+    
+    tilted_ring_temp = np.zeros((6,61,61,61))
+    for i in range (61):
+        tilted_ring_temp[:,i,i-1:i+2,:] = object[:,i,i-1:i+2,:]
+
+    savemat('tilted ring test.mat',{'object': tilted_ring_temp})
+
+    tilted_ring = tilted_ring_temp[:,25:35,:,:]
+
+    savemat('tilted ring cubic.mat',{'object': tilted_ring})
+    
+    # # and plot everything
+    # ax = plt.figure().add_subplot(projection='3d')
+    # ax.voxels(np.linspace(1,61,num=61), np.linspace(1,61,num=61), np.linspace(1,61,num=61), tilted_ring[0,...],
+    #         linewidth=0.5)
+    # ax.set(xlabel='r', ylabel='g', zlabel='b')
+    # ax.set_aspect('equal')
+
+    # plt.show()
+    # object_downsample = np.zeros((6,1,61,61))
+
+    # object_downsample[:,0,:,:] = object[:,30,:,:]
+    # idx = 0
+    # for i in range (23):
+    #     object_downsample[:,i,:,:] = object[:,idx,:,:]
+    #     idx += 4
+
+    # savemat('test.mat',{'object': object_downsample})

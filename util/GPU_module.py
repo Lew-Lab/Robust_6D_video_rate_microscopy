@@ -66,7 +66,7 @@ class smolm(nn.Module):
         return img
 
 
-def estimate(psf, obj, img_true, lr, max_iter, lambda_L1, lambda_TV, device):
+def estimate(psf, obj, type, img_true, lr, max_iter, lambda_lsq, lambda_L1, lambda_TV, lambda_I, device):
 
     # convert variables from numpy to tensor
     obj = torch.tensor(obj, dtype=torch.float32, device=device, requires_grad=True)
@@ -84,21 +84,21 @@ def estimate(psf, obj, img_true, lr, max_iter, lambda_L1, lambda_TV, device):
     arr_loss_total = torch.zeros(max_iter)
 
     # set up the optimizer
-    optimizer = torch.optim.Adam([obj], lr)
+    optimizer = torch.optim.Adam([obj], lr, eps=1e-3)
 
     # least square loss function
     least_sq = nn.MSELoss(reduction='sum').type(torch.float32)
 
     for i in range (max_iter): 
-
         img_est = model(obj)
 
         # compute the loss function
         loss_lsq = least_sq(img_est, img_true)
-        loss_L1 = loss_sparsity(obj)
+        loss_L1 = loss_sparsity(obj,type)
         loss_TV = loss_smoothness(obj)
-        loss_pos = constraint_positive_mii(obj)
-        loss = loss_lsq + lambda_L1*loss_L1 + lambda_TV*loss_TV + loss_pos
+        loss_pos = constraint_positive_mii(obj,device)
+        # loss = lambda_lsq*loss_lsq + lambda_L1*loss_L1 + lambda_TV*loss_TV
+        loss = lambda_lsq*loss_lsq + lambda_L1*loss_L1 + lambda_TV*loss_TV + lambda_I*loss_pos
 
         # store the loss
         arr_loss_lsq[i] = loss_lsq
@@ -110,7 +110,10 @@ def estimate(psf, obj, img_true, lr, max_iter, lambda_L1, lambda_TV, device):
         # gradient descent
         optimizer.zero_grad()
         loss.backward()
+        # nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5, norm_type=2)
         optimizer.step()
+
+        
 
     # end estimation
     obj = obj.detach().cpu().numpy()
@@ -123,26 +126,30 @@ def estimate(psf, obj, img_true, lr, max_iter, lambda_L1, lambda_TV, device):
 
     return obj, loss_final
 
-### loss functions
+### loss function ###
 
-def loss_MSE(img_est, img_true):
-    return torch.sum((img_est-img_true)**2)
-
-def loss_sparsity(obj):
-    return torch.sum(torch.abs(obj))
+def loss_sparsity(obj,type):
+    if type == 's':
+        # return torch.sum(torch.max(torch.abs(obj),dim=0)[0])
+        return torch.sum(torch.abs(obj))
+        # return torch.norm(torch.flatten(obj),p=1)
+    elif type == 'dipole':
+        return torch.sum(torch.sqrt(torch.sum(obj**2,dim=0)))
+        # return torch.sum(torch.max(torch.abs(obj),dim=0)[0])
 
 def loss_smoothness(obj):
     if obj.shape[1] == 1:
         dfdz = 0
     else:
-        dfdz = torch.sum(torch.abs(obj[:,1:,:,:]-obj[:,0:-1,:,:]))
-    dfdx = torch.sum(torch.abs(obj[:,:,1:,:]-obj[:,:,0:-1,:]))
-    dfdy = torch.sum(torch.abs(obj[:,:,:,1:]-obj[:,:,:,0:-1]))
-    tv = (dfdz+dfdx+dfdy)/3
+        dfdz = torch.sum(torch.abs(obj[:,1:,:,:]-obj[:,0:-1,:,:])**2)
+    dfdx = torch.sum(torch.abs(obj[:,:,1:,:]-obj[:,:,0:-1,:])**2)
+    dfdy = torch.sum(torch.abs(obj[:,:,:,1:]-obj[:,:,:,0:-1])**2)
+    tv = (dfdz+dfdx+dfdy)
     return tv
     
-def constraint_positive_mii(obj):
-    soft_indicator = torch.zeros(*obj[:3,...].shape)
-    soft_indicator = 1/torch.exp(-obj[:3,...]**2)-1
+def constraint_positive_mii(obj,device):
+    soft_indicator = torch.zeros(*obj[:3,...].shape).to(device=device)
+    soft_indicator = torch.max(soft_indicator,torch.abs(obj[:3,...]))**2
+    # soft_indicator = 1/torch.exp(-obj[:3,...]**2)-1
     soft_indicator[torch.where(torch.greater_equal(obj[:3,...],0))] = 0
     return torch.sum(soft_indicator)
