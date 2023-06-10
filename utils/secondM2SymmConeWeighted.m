@@ -39,6 +39,7 @@ x0SVD(1) = real(V(1, 3));
 x0SVD(2) = real(V(2, 3));
 x0SVD(3) = real(V(3, 3));
 x0SVD(4) = 1.5 * real(D(3, 3)) - .5;
+ %disp(x0SVD);
 
 [solSVD, ~] = fmincon(objFcn, x0SVD, [], [], [], [], lb, ub, @mycon, options);
 
