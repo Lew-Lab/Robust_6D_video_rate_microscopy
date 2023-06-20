@@ -22,8 +22,8 @@ m_yz = squeeze(object(6,:,:,:));
 m2 = [reshape(m_xx, [], 1), reshape(m_yy, [], 1), reshape(m_zz, [], 1), reshape(m_xy, [], 1), reshape(m_xz, [], 1), reshape(m_yz, [], 1)];
 
 %% retrieve indices of nonzero second moments
-[z,x,y] = ind2sub(size(m_xx), find(s > 10e-3)); % find indices of localizations that exist
-m2 = m2((s > 10e-3),:); % remove second moments of localizations that don't exist i.e. localizations with all zero second moments
+[z,x,y] = ind2sub(size(m_xx), find(s > 1e-2)); % find indices of localizations that exist
+m2 = m2((s >1e-2),:); % remove second moments of localizations that don't exist i.e. localizations with all zero second moments
 %% Load imaging system basis images
 
 b = load(['psf\B_ZScanned_zf1000_PSFsz_61.mat']);
@@ -73,49 +73,49 @@ end
 %% plot first moment data: 3D
 
 figure(1);
-scatter3(x, y, z,[], phi,'filled','markerfacealpha',.3)
+scatter3(x, y, z,[], phi,'filled','markerfacealpha',.4)
 xlabel('x (voxel length)'); ylabel('y (voxel length)'); zlabel('z (voxel length)');
 title('\phi: 3D diagonal view');
 colormap hsv; colorbar;
 
 figure(2);
-scatter3(x, y, z,[], theta,'filled','markerfacealpha',.3)
+scatter3(x, y, z,[], theta,'filled','markerfacealpha',.4)
 xlabel('x (voxel length)'); ylabel('y (voxel length)'); zlabel('z (voxel length)');
 title('\theta: 3D diagonal view');
 colormap cool; colorbar;
 
 %% plot first moment data: cross sections
 figure(3);
-scatter(x,y,[], phi,'filled','markerfacealpha',.3);
+scatter(x,y,[], phi,'filled','markerfacealpha',.4);
 xlabel('x (voxel length)'); ylabel('y (voxel length)'); axis square;
 title("\phi"); colormap hsv; colorbar;
 
 figure(4);
-scatter(x,y,[],theta,'filled','markerfacealpha',.3);
+scatter(x,y,[],theta,'filled','markerfacealpha',.4);
 xlabel('x (voxel length)'); ylabel('y (voxel length)'); axis square;
 title("\theta"); colormap cool; colorbar;
 
 
 figure(5);
-scatter(x,z,[], phi,'filled','markerfacealpha',.3);
+scatter(x,z,[], phi,'filled','markerfacealpha',.4);
 xlabel('x (voxel length)'); ylabel('z (voxel length)'); axis square;
 title("\phi"); colormap hsv; colorbar;
 
 
 figure(6);
-scatter(x,z,[],theta,'filled','markerfacealpha',.3);
+scatter(x,z,[],theta,'filled','markerfacealpha',.4);
 xlabel('x (voxel length)'); ylabel('z (voxel length)'); axis square;
 title("\theta"); colormap cool; colorbar;
 
 
 figure(7);
-scatter(y,z,[], phi,'filled','markerfacealpha',.3);
+scatter(y,z,[], phi,'filled','markerfacealpha',.4);
 xlabel('y (voxel length)'); ylabel('z (voxel length)'); axis square;
 title("\phi"); colormap hsv; colorbar;
 
 
 figure(8);
-scatter(y,z,[],theta,'filled','markerfacealpha',.3);
+scatter(y,z,[],theta,'filled','markerfacealpha',.4);
 xlabel('y (voxel length)'); ylabel('z (voxel length)'); axis square;
 title("\theta"); colormap cool; colorbar;
 
