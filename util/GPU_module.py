@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import torch.functional as F
 import torch.fft as fft
-import torchvision
 import sys
 import numpy as np
 import util.CPU_module as cpu
