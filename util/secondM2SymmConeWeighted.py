@@ -36,12 +36,10 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
     x0SVD[3] = 1.5 * np.real(D[0]) - .5
 
     # upper and lower constraints for estimated first moments
-    lb = [[-np.ones((3, 1))], [np.zeros((1, 1))]]
-    ub = np.ones((4, 1))
+    bound = [(-1, 1), (-1, 1), (0, 1), (0, 1)]
 
     # interior-point optimization
-    estM1 = scipy.optimize.minimize(lambda x: (symmCone2SecM(x).transpose() - secM) * FIM * (symmCone2SecM(x) - np.matrix(secM).transpose()),
-                                    x0SVD, bounds=(lb, ub), constraints=constraint)
+    estM1 = scipy.optimize.minimize(objective_fun, x0SVD, bounds=bound, args = (FIM, secM,), constraints=constraint)
 
     return estM1
 
@@ -89,21 +87,20 @@ def calFIMSecondM(B, I, s, backg):
 
 def symmCone2SecM(z):
     z = np.reshape(z, (1, 4), order='F')
-    muz_t = z[:, 2]
-    muxx = z[:, 3] * z[:,0]**2 + (1 - z[:, 3]) / 3
-    muyy = z[:, 3] * z[:,1]**2 + (1 - z[:,3]) / 3
-    muzz = z[:, 3] * muz_t**2 + (1 - z[:,3]) / 3
-    muxy = z[:, 3] * z[:,0] * z[:,1]
-    muxz = z[:, 3] * z[:,0] * muz_t
-    muyz = z[:, 3] * z[:,1] * muz_t
-    out = np.matrix([muxx, muyy, muzz, muxy, muxz, muyz]).transpose()
+    muz_t = z[2]
+    muxx = z[3] * z[0]**2 + (1 - z[3]) / 3
+    muyy = z[3] * z[1]**2 + (1 - z[3]) / 3
+    muzz = z[3] * z[2]**2 + (1 - z[3]) / 3
+    muxy = z[3] * z[0] * z[1]
+    muxz = z[3] * z[0] * z[2]
+    muyz = z[3] * z[1] * z[2]
+    out = np.matrix([muxx, muyy, muzz, muxy, muxz, muyz]).T
     return out
 
 
 def objective_fun(z, FIM, secM):
     '''Objective function, test lambda objective function first'''
-    sC2M = symmCone2SecM(z)
-    return (sC2M.transpose() - secM) * FIM * (sC2M - np.matrix(secM).transpose())
+    return np.matmul(np.matmul((symmCone2SecM(z).T - np.matrix(secM)), FIM), (symmCone2SecM(z) - np.matrix(secM).T))
 
 def constraint(z):
     '''Constraint function'''
