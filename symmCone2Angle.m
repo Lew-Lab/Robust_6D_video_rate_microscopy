@@ -1,6 +1,6 @@
 %%
 addpath utils;
-obj = load(['objects/tilted ring cubic.mat']);
+obj = load(['objects/sphere 2.mat']);
 object = obj.object;
 
 %% Load and format second moment information for input
