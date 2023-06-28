@@ -49,7 +49,7 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
     ub = np.ones(4, 1);
 
     # interior-point optimization
-    scipy.optimize
+    scipy.optimize.minimize(objective_fun,x0SVD, bounds=(lb, ub), constraints=constraint)
 
 
 def symmCone2SecM(z):
