@@ -6,7 +6,7 @@ import os
 def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
     # define a least squares problem structure
 
-    # ([0,0] is necessary for some reason)
+    
     bXX = b['XX'][0,0]; bYY = b['YY'][0,0]; bZZ = b['ZZ'][0,0]; bXY = b['XY'][0,0]; bXZ = b['XZ'][0,0]; bYZ = b['YZ'][0,0]
 
     Ix = secM[0] * bXX + secM[1] * bYY + secM[2] * bZZ + secM[3] * bXY + secM[4] * bXZ + secM[5] * bYZ
@@ -24,6 +24,10 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
         [secM[3], secM[1], secM[5]],
         [secM[4], secM[5], secM[2]]]
     D,V = np.linalg.eig(M)
+    
+
+    # print(D)
+    # print(V)
 
     # initialization via SVD
     x0SVD = np.zeros((4,1))
@@ -36,10 +40,16 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
     x0SVD[3] = 1.5 * np.real(D[0]) - .5
 
     # upper and lower constraints for estimated first moments
-    bound = [(-1, 1), (-1, 1), (0, 1), (0, 1)]
+    bound = [(-1, 1), (-1, 1), (-1, 1), (0, 1)]
+
+    cons = {'type':'ineq', 'fun': constraint}
 
     # interior-point optimization
-    estM1 = scipy.optimize.minimize(objective_fun, x0SVD, bounds=bound, args = (FIM, secM,), constraints=constraint)
+    M1estresults = scipy.optimize.minimize(objective_fun, x0SVD, bounds = bound, constraints = cons, args = (FIM, np.matrix(secM),))
+    # print(M1estresults)
+    estM1 = M1estresults['x']
+    # print(estM1)
+    # print(np.linalg.norm(estM1[0:2]))
 
     return estM1
 
@@ -87,21 +97,25 @@ def calFIMSecondM(B, I, s, backg):
 
 def symmCone2SecM(z):
     z = np.reshape(z, (1, 4), order='F')
-    muz_t = z[2]
-    muxx = z[3] * z[0]**2 + (1 - z[3]) / 3
-    muyy = z[3] * z[1]**2 + (1 - z[3]) / 3
-    muzz = z[3] * z[2]**2 + (1 - z[3]) / 3
-    muxy = z[3] * z[0] * z[1]
-    muxz = z[3] * z[0] * z[2]
-    muyz = z[3] * z[1] * z[2]
-    out = np.matrix([muxx, muyy, muzz, muxy, muxz, muyz]).T
+    muz_t = z[:,2]
+    muxx = z[:,3] * z[:,0]**2 + (1 - z[:,3]) / 3
+    muyy = z[:,3] * z[:,1]**2 + (1 - z[:,3]) / 3
+    muzz = z[:,3] * z[:,2]**2 + (1 - z[:,3]) / 3
+    muxy = z[:,3] * z[:,0] * z[:,1]
+    muxz = z[:,3] * z[:,0] * z[:,2]
+    muyz = z[:,3] * z[:,1] * z[:,2]
+    out = np.matrix([muxx, [muyy], [muzz], [muxy], [muxz], [muyz]])
     return out
 
 
 def objective_fun(z, FIM, secM):
     '''Objective function, test lambda objective function first'''
-    return np.matmul(np.matmul((symmCone2SecM(z).T - np.matrix(secM)), FIM), (symmCone2SecM(z) - np.matrix(secM).T))
+    sC2SM = symmCone2SecM(z); # print(np.shape(sC2SM))
+    # print(np.shape((sC2SM.T - secM)))
+    # print(np.shape(np.matmul(np.matmul((sC2SM.T - secM), FIM), (sC2SM - secM.T))))
+    # print(np.matmul(np.matmul((sC2SM.T - secM), FIM), (sC2SM - secM.T)))
+    return np.matmul(np.matmul((sC2SM.T - secM), FIM), (sC2SM - np.matrix(secM).T))
 
 def constraint(z):
     '''Constraint function'''
-    return np.sum(z[:, 0:2]**2, 2) - 1
+    return np.sum(z[0:3]**2, 0) - 1
