@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scipy
+from scipy import io
 import os
 from secondM2SymmConeWeighted import *
 # import torch 
@@ -11,7 +12,7 @@ from secondM2SymmConeWeighted import *
 obj_dir = 'objects'
 obj_fname = os.path.join(obj_dir, 'sphere 2.mat')
 print(obj_fname)
-obj_file = scipy.io.loadmat(obj_fname)
+obj_file = io.loadmat(obj_fname)
 object = obj_file['object']
 
 m_xx = np.squeeze(object[0,:,:,:]);
@@ -64,7 +65,7 @@ for loc in range(len(m2)):
     # retrieve b, B, and sumNorm for the correct z-height
     b = BsList[0, zSlice]
     B = BHaList[0, zSlice]
-    sumNorm = sumNormList[0, zSlice]
+    sumNorm = sumNormList[0, zSlice][0,0]
 
     # estimate and store first moments
     estM1 = secondM2SymmConeWeighted(b, B, sumNorm, secM/signal, signal, 1e-12)
@@ -104,6 +105,7 @@ thetacolors = plt.cm.cool(thetaNormed(theta))
 fig1 = plt.figure()
 ax1 = fig1.add_subplot(111, projection='3d')
 a1 = ax1.scatter(x, y, z, c=phicolors, marker='o', alpha=0.4)
+fig1.colorbar(plt.cm.ScalarMappable(norm=phiNormed, cmap='hsv'), ax=ax1)
 
 
 ax1.set_xlabel('X voxel')
@@ -114,7 +116,7 @@ ax1.set_zlabel('Z voxel')
 fig2 = plt.figure()
 ax2 = fig2.add_subplot(111, projection='3d')
 a2 = ax2.scatter(x, y, z, c=thetacolors, marker='o', alpha=0.4)
-
+fig2.colorbar(plt.cm.ScalarMappable(norm=thetaNormed, cmap='cool'), ax=ax2)
 
 ax2.set_xlabel('X voxel')
 ax2.set_ylabel('Y voxel')
@@ -124,7 +126,7 @@ ax2.set_zlabel('Z voxel')
 fig3 = plt.figure()
 ax3 = fig3.add_subplot(111)
 a3 = ax3.scatter(x, y, c=phicolors, marker='o', alpha=0.4)
-
+fig3.colorbar(plt.cm.ScalarMappable(norm=phiNormed, cmap='hsv'), ax=ax3)
 
 ax3.set_xlabel('X voxel')
 ax3.set_ylabel('Y voxel')
@@ -133,7 +135,7 @@ ax3.set_ylabel('Y voxel')
 fig4 = plt.figure()
 ax4 = fig4.add_subplot(111)
 a4 = ax4.scatter(x, z, c=phicolors, marker='o', alpha=0.4)
-
+fig4.colorbar(plt.cm.ScalarMappable(norm=phiNormed, cmap='hsv'), ax=ax4)
 
 ax4.set_xlabel('X voxel')
 ax4.set_ylabel('Z voxel')
@@ -142,7 +144,7 @@ ax4.set_ylabel('Z voxel')
 fig5 = plt.figure()
 ax5 = fig5.add_subplot(111)
 a5 = ax5.scatter(y, z, c=phicolors, marker='o', alpha=0.4)
-
+fig5.colorbar(plt.cm.ScalarMappable(norm=phiNormed, cmap='hsv'), ax=ax5)
 
 ax5.set_xlabel('Y voxel')
 ax5.set_ylabel('Z voxel')
@@ -151,7 +153,7 @@ ax5.set_ylabel('Z voxel')
 fig6 = plt.figure()
 ax6 = fig6.add_subplot(111)
 a6 = ax6.scatter(x, y, c=thetacolors, marker='o', alpha=0.4)
-
+fig6.colorbar(plt.cm.ScalarMappable(norm=thetaNormed, cmap='cool'), ax=ax6)
 
 ax6.set_xlabel('X voxel')
 ax6.set_ylabel('Y voxel')
@@ -160,7 +162,7 @@ ax6.set_ylabel('Y voxel')
 fig7 = plt.figure()
 ax7 = fig7.add_subplot(111)
 a7 = ax7.scatter(x, z, c=thetacolors, marker='o', alpha=0.4)
-
+fig7.colorbar(plt.cm.ScalarMappable(norm=thetaNormed, cmap='cool'), ax=ax7)
 
 ax7.set_xlabel('X voxel')
 ax7.set_ylabel('Z voxel')
@@ -169,7 +171,7 @@ ax7.set_ylabel('Z voxel')
 fig8 = plt.figure()
 ax8 = fig8.add_subplot(111)
 a8 = ax8.scatter(y, z, c=thetacolors, marker='o', alpha=0.4)
-
+fig8.colorbar(plt.cm.ScalarMappable(norm=thetaNormed, cmap='cool'), ax=ax8)
 
 ax8.set_xlabel('Y voxel')
 ax8.set_ylabel('Z voxel')

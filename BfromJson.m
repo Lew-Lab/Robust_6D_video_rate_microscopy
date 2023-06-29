@@ -1,4 +1,4 @@
-% MVR json config test
+ MVR json config test
 clc; close all; clear;
 addpath matlabutils;
 

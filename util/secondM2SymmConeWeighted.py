@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from scipy import optimize
 import os
 
 
@@ -20,24 +21,24 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
 
 
     # construct the M matrix
-    M = [[secM[0], secM[3], secM[4]],
+    M = np.array([[secM[0], secM[3], secM[4]],
         [secM[3], secM[1], secM[5]],
-        [secM[4], secM[5], secM[2]]]
+        [secM[4], secM[5], secM[2]]],dtype='float64')
     D,V = np.linalg.eig(M)
-    
+    V_real = np.real(V)
+    D_real = np.real(D)
 
-    # print(D)
-    # print(V)
+    idx_max_D = np.argmax(D_real)
 
     # initialization via SVD
     x0SVD = np.zeros((4,1))
 
     # Initial value based the largest eigen value
     #------------------------------------------------------------
-    x0SVD[0] = np.real(V[0, 0])
-    x0SVD[1] = np.real(V[1, 0])
-    x0SVD[2] = np.real(V[2, 0])
-    x0SVD[3] = 1.5 * np.real(D[0]) - .5
+    x0SVD[0] = np.real(V[0, idx_max_D])
+    x0SVD[1] = np.real(V[1, idx_max_D])
+    x0SVD[2] = np.real(V[2, idx_max_D])
+    x0SVD[3] = 1.5 * np.max(D_real[idx_max_D]) - .5
 
     # upper and lower constraints for estimated first moments
     bound = [(-1, 1), (-1, 1), (-1, 1), (0, 1)]
@@ -45,7 +46,7 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
     cons = {'type':'ineq', 'fun': constraint}
 
     # interior-point optimization
-    M1estresults = scipy.optimize.minimize(objective_fun, x0SVD, bounds = bound, constraints = cons, args = (FIM, np.matrix(secM),))
+    M1estresults = optimize.minimize(objective_fun, x0SVD, bounds = bound, constraints = cons, args = (FIM, np.matrix(secM),))
     # print(M1estresults)
     estM1 = M1estresults['x']
     # print(estM1)
@@ -93,18 +94,20 @@ def calFIMSecondM(B, I, s, backg):
 
     FIM[4, 5] = (s**2) * (sum(sum((Bef) / (I + backg))))
 
-    return np.matrix(FIM) + np.matrix(FIM).transpose()
+    FIM = FIM + np.transpose(FIM)
+
+    return FIM
+
 
 def symmCone2SecM(z):
     z = np.reshape(z, (1, 4), order='F')
-    muz_t = z[:,2]
     muxx = z[:,3] * z[:,0]**2 + (1 - z[:,3]) / 3
     muyy = z[:,3] * z[:,1]**2 + (1 - z[:,3]) / 3
     muzz = z[:,3] * z[:,2]**2 + (1 - z[:,3]) / 3
     muxy = z[:,3] * z[:,0] * z[:,1]
     muxz = z[:,3] * z[:,0] * z[:,2]
     muyz = z[:,3] * z[:,1] * z[:,2]
-    out = np.matrix([muxx, [muyy], [muzz], [muxy], [muxz], [muyz]])
+    out = np.array([[muxx[0]], [muyy[0]], [muzz[0]], [muxy[0]], [muxz[0]], [muyz[0]]])
     return out
 
 
@@ -114,7 +117,7 @@ def objective_fun(z, FIM, secM):
     # print(np.shape((sC2SM.T - secM)))
     # print(np.shape(np.matmul(np.matmul((sC2SM.T - secM), FIM), (sC2SM - secM.T))))
     # print(np.matmul(np.matmul((sC2SM.T - secM), FIM), (sC2SM - secM.T)))
-    return np.matmul(np.matmul((sC2SM.T - secM), FIM), (sC2SM - np.matrix(secM).T))
+    return np.matmul(np.matmul((np.transpose(sC2SM) - secM), FIM), (sC2SM - np.transpose(secM)))[0,0]
 
 def constraint(z):
     '''Constraint function'''
