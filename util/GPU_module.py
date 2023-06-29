@@ -66,7 +66,7 @@ class smolm(nn.Module):
         return img
 
 
-def estimate(psf, obj, type, img_true, lr, max_iter, lambda_lsq, lambda_L1, lambda_TV, lambda_I, device):
+def estimate(psf, obj, type, img_true, lr, max_iter, lambda_L1, lambda_TV, lambda_I, device):
 
     # convert variables from numpy to tensor
     obj = torch.tensor(obj, dtype=torch.float32, device=device, requires_grad=True)
@@ -84,7 +84,8 @@ def estimate(psf, obj, type, img_true, lr, max_iter, lambda_lsq, lambda_L1, lamb
     arr_loss_total = torch.zeros(max_iter)
 
     # set up the optimizer
-    optimizer = torch.optim.Adam([obj], lr, eps=1e-3)
+    # optimizer = torch.optim.Adam([obj], lr, eps=1e-3)
+    optimizer = torch.optim.SGD([obj], lr)
 
     # least square loss function
     least_sq = nn.MSELoss(reduction='sum').type(torch.float32)
@@ -98,7 +99,7 @@ def estimate(psf, obj, type, img_true, lr, max_iter, lambda_lsq, lambda_L1, lamb
         loss_TV = loss_smoothness(obj)
         loss_pos = constraint_positive_mii(obj,device)
         # loss = lambda_lsq*loss_lsq + lambda_L1*loss_L1 + lambda_TV*loss_TV
-        loss = lambda_lsq*loss_lsq + lambda_L1*loss_L1 + lambda_TV*loss_TV + lambda_I*loss_pos
+        loss = loss_lsq + lambda_L1*loss_L1 + lambda_TV*loss_TV + lambda_I*loss_pos
 
         # store the loss
         arr_loss_lsq[i] = loss_lsq

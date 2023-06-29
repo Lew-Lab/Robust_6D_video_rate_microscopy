@@ -27,7 +27,7 @@ def plot_obj_voxel(obj, slice_dim, slice_loc, title=''):
 
     for i in range (6):
         ax = axs[np.int16(i/3)][i-np.int16(i/3)*3]
-        temp = ax.imshow(slice[i,...])
+        temp = ax.imshow(np.transpose(slice[i,...]), origin='lower')
         ax.set_axis_off()
         ax.set_title(titles[i])
         fig.colorbar(temp, ax=ax, location='right')
@@ -56,7 +56,7 @@ def video_obj(obj, title_name, folder_name):
 
             for i in range (6):
                 ax = axs[np.int16(i/3)][i-np.int16(i/3)*3]
-                temp = ax.imshow(slice[i,...], vmin=vmin[i], vmax=vmax[i])
+                temp = ax.imshow(np.transpose(slice[i,...]), vmin=vmin[i], vmax=vmax[i], origin='lower')
                 ax.set_axis_off()
                 ax.set_title(titles[i])
                 fig.colorbar(temp, ax=ax, location='right')
@@ -77,7 +77,7 @@ def video_obj(obj, title_name, folder_name):
             fig, axs = plt.subplots(1,1)
             fig.suptitle(title_name + ' at z #%2d' %z)
 
-            temp = axs.imshow(slice, vmin=vmin, vmax=vmax)
+            temp = axs.imshow(np.transpose(slice), vmin=vmin, vmax=vmax, origin='lower')
             axs.set_axis_off()
             fig.colorbar(temp, ax=axs, location='right')
 
@@ -94,13 +94,13 @@ def plot_img_tight(img, title_name):
     channel = img.shape[0]
 
     if channel == 8:
-        image_red = np.concatenate((img[0,...],img[1,...],img[2,...],img[3,...]),axis=1)
-        image_blue = np.concatenate((img[4,...],img[5,...],img[6,...],img[7,...]),axis=1)
+        image_red = np.concatenate((np.transpose(img[0,...]),np.transpose(img[1,...]),np.transpose(img[2,...]),np.transpose(img[3,...])),axis=1)
+        image_blue = np.concatenate((np.transpose(img[4,...]),np.transpose(img[5,...]),np.transpose(img[6,...]),np.transpose(img[7,...])),axis=1)
         fig, axs = plt.subplots(2,1)
-        temp = axs[0].imshow(image_red, cmap='gist_heat')
+        temp = axs[0].imshow(image_red, cmap='gist_heat', origin='lower')
         axs[0].set_axis_off()
         fig.colorbar(temp, ax=axs[0])
-        temp = axs[1].imshow(image_blue, cmap='bone')
+        temp = axs[1].imshow(image_blue, cmap='bone', origin='lower')
         axs[1].set_axis_off()
         fig.colorbar(temp, ax=axs[1])
         plt.suptitle(title_name)
