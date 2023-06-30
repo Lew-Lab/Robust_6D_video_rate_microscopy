@@ -7,10 +7,10 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat, savemat
-import util.GPU_module as gpu
-import util.CPU_module as cpu
-import util.obj_func as obj
-import util.plot_func as plot
+import pyutils.GPU_module as gpu
+import pyutils.CPU_module as cpu
+import pyutils.obj_func as obj
+import pyutils.plot_func as plot
 import matplotlib.animation as animation
 import matplotlib.cm as cm
 
@@ -46,7 +46,9 @@ for idx_obj in range (len(object_file_list)):
     image_raw = model_cpu.forward(object_gt)
     for trial in range (num_of_trials):
         image_noisy = np.random.poisson(image_raw)
-        object_est, loss = gpu.estimate(psf, object_initial, 'dipole', image_noisy, optim_param['learning_rate'], optim_param['max_iter'], optim_param['lambda_TV'], optim_param['lambda_TV'], optim_param['lambda_I'], device)
+        object_est, loss = gpu.estimate(psf, object_initial, 'dipole', image_noisy, optim_param['learning_rate'], 
+                                        optim_param['max_iter'], optim_param['lambda_TV'], optim_param['lambda_TV'], 
+                                        optim_param['lambda_I'], device)
         # compare
         acc = np.mean((object_gt-object_est)**2)
         accuracy[idx_obj,trial] = acc

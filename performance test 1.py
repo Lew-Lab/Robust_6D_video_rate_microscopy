@@ -3,12 +3,11 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 import torch
 import torch.optim
-import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.io import loadmat, savemat
-import util.GPU_module as gpu 
-import util.CPU_module as cpu
+import pyutils.GPU_module as gpu 
+import pyutils.CPU_module as cpu
 import pandas as pd 
 
 FLAG_TRACE_LOSS = True
@@ -59,7 +58,9 @@ for trial in range (num_of_trials):
     image_noisy = np.random.poisson(image_raw)
     for idx_L1 in range (lambda_L1.shape[0]):
         for idx_TV in range (lambda_TV.shape[0]):
-            object_est, loss = gpu.estimate(psf, object_initial, 'dipole', image_noisy, lr, max_iter, lambda_L1[idx_L1], lambda_TV[idx_TV], lambda_I, device)
+            object_est, loss = gpu.estimate(psf, object_initial, 'dipole', image_noisy, 
+                                            lr, max_iter, lambda_L1[idx_L1], lambda_TV[idx_TV], 
+                                            lambda_I, device)
             # compare
             acc = np.mean((object_gt-object_est)**2)
             accuracy[trial,idx_L1,idx_TV] = acc
