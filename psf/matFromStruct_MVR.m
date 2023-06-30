@@ -33,7 +33,7 @@ for k = 1:zsize
     ylabel('channel');
     axis image
     axis off
-    F = getframe;
+    F = getframe();
     writeVideo(v,F)
     
 end
