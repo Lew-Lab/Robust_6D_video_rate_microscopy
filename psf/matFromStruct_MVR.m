@@ -1,6 +1,8 @@
 %% generate mat form struct
 psfsize = systemPar.PSFsz; % set the size of the DSF
 zsize = length(systemPar.zList);
+
+% Blist
 cells = Bstruct.Blist;
 dsf_raMVR = zeros(8,6,zsize,psfsize,psfsize);
 
@@ -12,6 +14,15 @@ for h = 1:zsize
         end
     end
 end
+
+% BsList
+BsList = Bstruct.BsList
+
+% BHaList
+
+
+% sumNormList
+
 
 %% generate the video
 
