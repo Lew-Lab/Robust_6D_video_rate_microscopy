@@ -15,23 +15,24 @@ print('Using ' + device)
 
 ### document setup ###
 psf_file = 'MVR_zf1000_3pixelsz_z10' # #channel x orientation x Z x X x Y
-object_file = 'fiber gamma 1' # orientation x Z x X x Y
-initial_file = '' # orientation x Z x X x Y
+object_file = 'flat ring gamma 0' # orientation x Z x X x Y
+initial_file = 'flat ring initial' # orientation x Z x X x Y
 image_file = '' # #channel x X x Y
+factor = 100
 FLAG_NOISE = True
 
 ### hyperparams setup ###
 optim_param = dict()
 optim_param['lr'] = 0.01
 optim_param['max_iter'] = 1500
-optim_param['lambda_L1'] = 2
+optim_param['lambda_L1'] = 350
 optim_param['lambda_TV'] = 0
 optim_param['lambda_I'] = 5
 
 optim_param_iso = dict()
 optim_param_iso['lr'] = 0.01
 optim_param_iso['max_iter'] = 1000
-optim_param_iso['lambda_L1'] = 20
+optim_param_iso['lambda_L1'] = 150
 optim_param_iso['lambda_TV'] = 0
 optim_param_iso['lambda_I'] = 5
 
@@ -39,10 +40,10 @@ optim_param_iso['lambda_I'] = 5
 psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
 
 ### object domain ###
-object = loadmat(os.path.join('performance test objects', object_file+'.mat'))['object']
+object = loadmat(os.path.join('performance test objects', object_file+'.mat'))['object']*factor
 object_size = (6,psf.shape[2],psf.shape[3],psf.shape[4])
 object_iso_size = (1,psf.shape[2],psf.shape[3],psf.shape[4])
-# plot.video_obj(object,'GT of ' + object_file,'object GT')
+plot.video_obj(object,'GT of ' + object_file,'object GT')
 
 ### model setup ###
 model_cpu = cpu.smolm(psf, object_size)
@@ -65,7 +66,9 @@ if initial_file == '':
                                  optim_param_iso['lambda_TV'], optim_param_iso['lambda_I'], device)
     plot.video_obj(initial,'Est initial of ' + object_file, 'initial Est')
 else: 
-    initial = loadmat(os.path.join('performance test initials', initial_file +'.mat'))['initial']
+    initial = loadmat(os.path.join('performance test initials', initial_file +'.mat'))['initial']*factor
+
+savemat('flat ring initial.mat',{'initial':initial})
 
 ### deconvolution ###
 obj_est, loss = gpu.estimate(psf, initial, 'dipole', img, optim_param['lr'], 

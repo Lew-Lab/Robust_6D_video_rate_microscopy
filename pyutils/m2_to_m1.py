@@ -6,14 +6,14 @@ from scipy import io
 import scipy
 from scipy import optimize
 
-def m2_to_m1(object, Bstruct): 
+def m2_to_m1(object, Bstruct, brightness_threshold): 
 
     m_xx = object[0,:,:,:]
     m_yy = object[1,:,:,:]
     m_zz = object[2,:,:,:]
 
-    s_3D = m_xx + m_yy + m_zz
-    s = np.matrix.flatten(s_3D, order = 'F')
+    s = m_xx + m_yy + m_zz
+    s = np.matrix.flatten(s, order = 'F')
 
     m_xy = object[3,:,:,:]
     m_xz = object[4,:,:,:]
@@ -27,10 +27,10 @@ def m2_to_m1(object, Bstruct):
     m2 = np.concatenate(m2, axis = 0)
     m2 = np.reshape(m2, (np.shape(m2)[0]//6, 6), order = 'F')
 
-    [z, x, y] = np.unravel_index(np.argwhere(s > 1e-2), np.shape(m_xx), order = 'F')
+    [z, x, y] = np.unravel_index(np.argwhere(s > brightness_threshold), np.shape(m_xx), order = 'F')
 
     # retrieve second moments of voxels with localizations
-    m2 = np.squeeze(m2[np.argwhere(s > 1e-2),:])
+    m2 = np.squeeze(m2[np.argwhere(s > brightness_threshold),:])
 
     # Retrieve Bstruct and define b, B, sumNormList
     BsList = Bstruct['BsList'][0,0] # retrieves BsList from Bstruct
@@ -60,7 +60,7 @@ def m2_to_m1(object, Bstruct):
         estM1[2]= np.abs(estM1[2])
         m1[loc,:] = estM1
 
-    return m1
+    return s, m1, z, x, y
 
 
 def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
@@ -77,26 +77,25 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
     # Compute Fisher Information Matrix
     FIM = calFIMSecondM(B, Ix, signal, backg)
 
-
     # construct the M matrix
     M = np.array([[secM[0], secM[3], secM[4]],
         [secM[3], secM[1], secM[5]],
         [secM[4], secM[5], secM[2]]],dtype='float64')
-    D,V = np.linalg.eig(M)
-    V_real = np.real(V)
-    D_real = np.real(D)
+    eigvalue, eigvector = np.linalg.eig(M)
+    eigvector_real = np.real(eigvector)
+    eigvalue_real = np.real(eigvalue)
 
-    idx_max_D = np.argmax(D_real)
+    idx_max_D = np.argmax(eigvalue_real)
 
     # initialization via SVD
     x0SVD = np.zeros((4,1))
 
     # Initial value based the largest eigen value
     #------------------------------------------------------------
-    x0SVD[0] = np.real(V[0, idx_max_D])
-    x0SVD[1] = np.real(V[1, idx_max_D])
-    x0SVD[2] = np.real(V[2, idx_max_D])
-    x0SVD[3] = 1.5 * np.max(D_real[idx_max_D]) - .5
+    x0SVD[0] = np.real(eigvector_real[0, idx_max_D])
+    x0SVD[1] = np.real(eigvector_real[1, idx_max_D])
+    x0SVD[2] = np.real(eigvector_real[2, idx_max_D])
+    x0SVD[3] = 1.5 * np.max(eigvalue_real[idx_max_D]) - .5
 
     # upper and lower constraints for estimated first moments
     bound = [(-1, 1), (-1, 1), (-1, 1), (0, 1)]
@@ -175,16 +174,44 @@ def constraint(z):
     '''Constraint function'''
     return np.sum(z[0:3]**2, 0) - 1
 
-if __name__ == "__main__":
-    # import estimated object second moment information
-    obj_dir = 'performance test objects'
-    obj = scipy.io.loadmat(os.path.join(obj_dir, 'hemisphere gamma 1.mat'))['object']
-    # import MVR basis images
-    B_dir = 'psf'
-    B_fname = os.path.join(B_dir, 'B_ZScanned_zf1000_PSFsz_61.mat')
-    Bfile = scipy.io.loadmat(B_fname)
-    Bstruct = Bfile['Bstruct']
+def orientation_acc(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est):
+    pointer_gt = 0 
+    pointer_est = 0
+    acc_orientation = []
+    acc_gamma = []
+    acc_s = []
+    acc_z = []
+    acc_x = []
+    acc_y = []
 
-    est_m1 = m2_to_m1(obj, Bstruct)
+    while (pointer_gt < len(x_gt) and pointer_est < len(x_est)):
 
-    a = 1
+        if y_gt[pointer_gt][0] > y_est[pointer_est][0]:
+            pointer_est += 1
+        elif y_gt[pointer_gt][0] < y_est[pointer_est][0]:
+            pointer_gt += 1
+        elif y_gt[pointer_gt][0] == y_est[pointer_est][0]:
+            if x_gt[pointer_gt][0] > x_est[pointer_est][0]:
+                pointer_est += 1
+            elif x_gt[pointer_gt][0] < x_est[pointer_est][0]:
+                pointer_gt += 1
+            elif x_gt[pointer_gt][0] == x_est[pointer_est][0]:
+                if z_gt[pointer_gt][0] > z_est[pointer_est][0]:
+                    pointer_est += 1
+                elif z_gt[pointer_gt][0] < z_est[pointer_est][0]:
+                    pointer_gt += 1
+                elif z_gt[pointer_gt][0] == z_est[pointer_est][0]:
+                    a = m1_gt[pointer_gt,:3]
+                    b = m1_est[pointer_est,:3]
+                    acc = np.arccos(np.sum(a*b)/(np.sqrt(np.sum(a**2))*np.sqrt(np.sum(b**2))))
+                    if np.isnan(acc) == False or np.isnan(acc) == True:
+                        acc_orientation.append(np.rad2deg(acc))
+                        acc_gamma.append(np.abs(m1_gt[pointer_gt,3]-m1_est[pointer_gt,3]))
+                        acc_s.append(np.abs(s_gt[pointer_gt]-s_est[pointer_gt]))
+                        acc_z.append(z_gt[pointer_gt][0])
+                        acc_x.append(x_gt[pointer_gt][0])
+                        acc_y.append(y_gt[pointer_gt][0])
+                    pointer_gt += 1
+                    pointer_est += 1
+    
+    return acc_s, acc_orientation, acc_gamma, acc_z, acc_x, acc_y

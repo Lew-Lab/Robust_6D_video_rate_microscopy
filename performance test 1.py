@@ -9,8 +9,9 @@ from scipy.io import loadmat, savemat
 import pyutils.GPU_module as gpu 
 import pyutils.CPU_module as cpu
 import pandas as pd 
+from pyutils import m2_to_m1 as convert
 
-FLAG_TRACE_LOSS = True
+FLAG_TRACE_LOSS = False
 FLAG_SAVE_RESULT = True
 
 ### CUDA setup ###
@@ -19,17 +20,17 @@ print('Using ' + device)
 
 ### document setup ###
 psf_file = 'MVR_zf1000_3pixelsz_z10' # channel number x orientation x Z x X x Y
-object_file_raw = 'flat surface gamma 0' # orientation x Z x X x Y
-initial_file = 'flat surface initial'
+object_file_raw = 'flat ring gamma 1' # orientation x Z x X x Y
+initial_file = 'flat ring initial'
 num_of_trials = 5
 
 ### lambda setup ###
-l1_lb = 0
-l1_up = 20
-l1_step_num = 5
+l1_lb = 260
+l1_up = 350
+l1_step_num = 10
 tv_lb = 0
-tv_up = 0.1
-tv_step_num = 6
+tv_up = 0
+tv_step_num = 1
 
 lambda_L1 = np.linspace(l1_lb,l1_up,l1_step_num,endpoint=True)
 lambda_TV = np.linspace(tv_lb,tv_up,tv_step_num,endpoint=True)
@@ -41,8 +42,8 @@ lambda_I = 5
 
 ### psf, object_gt, image_raw setup ###
 psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
-object_gt = loadmat(os.path.join('performance test objects', object_file_raw+'.mat'))['object']*10
-object_initial = loadmat(os.path.join('performance test initials', initial_file+'.mat'))['initial']*10
+object_gt = loadmat(os.path.join('performance test objects', object_file_raw+'.mat'))['object']*100
+object_initial = loadmat(os.path.join('performance test initials', initial_file+'.mat'))['initial']*100
 object_size = (6,psf.shape[2],psf.shape[3],psf.shape[4])
 object_iso_size = (1,psf.shape[2],psf.shape[3],psf.shape[4])
 model_cpu = cpu.smolm(psf, object_size)

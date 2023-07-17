@@ -9,7 +9,7 @@ from secondM2SymmConeWeighted import *
 
 # import estimated object second moment information
 obj_dir = 'performance test objects'
-obj_fname = os.path.join(obj_dir, 'hemisphere gamma 1.mat')
+obj_fname = os.path.join(obj_dir, 'fiber gamma 1.mat')
 print(obj_fname)
 obj_file = io.loadmat(obj_fname)
 object = obj_file['object']

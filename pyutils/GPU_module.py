@@ -46,11 +46,13 @@ class smolm(nn.Module):
         h_left_pad = np.int16(np.floor(h_diff/2))
         h_right_pad = np.int16(np.ceil(h_diff/2))
 
-        psf_padded = nn.functional.pad(psf,(h_left_pad,h_right_pad,w_left_pad,w_right_pad),'constant',0)
+        psf_padded = nn.functional.pad(psf,(h_left_pad,h_right_pad,
+                                            w_left_pad,w_right_pad),'constant',0)
 
         # store the psf and fft of the psf
         self.psf = torch.nn.Parameter(psf_padded, requires_grad=False)
-        self.psf_fft = torch.nn.Parameter(fft.rfft2(fft.ifftshift(self.psf, (3,4))), requires_grad=False)
+        self.psf_fft = torch.nn.Parameter(fft.rfft2(fft.ifftshift
+                                                    (self.psf, (3,4))), requires_grad=False)
 
     def forward(self, obj):
         
@@ -79,8 +81,7 @@ def initialization(psf, obj, img_true, lr, max_iter, lambda_l1, lambda_tv, lambd
     device: 'cuda' or 'cpu'. 
 
     Output:
-    initial: 6 x Z x X x Y. Isotropic initial object.
-    '''
+    initial: 6 x Z x X x Y. Isotropic initial object. '''
 
     psf_iso = np.sum(psf[:,:3,:,:,:],axis=1,keepdims=True)
     obj_iso = np.sum(obj[:3,:,:,:],axis=0,keepdims=True)
@@ -89,7 +90,8 @@ def initialization(psf, obj, img_true, lr, max_iter, lambda_l1, lambda_tv, lambd
     model_cpu_iso = cpu.smolm(psf_iso, obj_iso_size)
 
     initial_iso = np.random.rand(1,psf.shape[2],psf.shape[3],psf.shape[4])
-    obj_est_iso, loss_iso = estimate(psf_iso, initial_iso, 's', img_true, lr, max_iter, lambda_l1, lambda_tv, lambda_I, device)
+    obj_est_iso, loss_iso = estimate(psf_iso, initial_iso, 's', img_true, 
+                                     lr, max_iter, lambda_l1, lambda_tv, lambda_I, device)
     img_est_iso = model_cpu_iso.forward(obj_est_iso)
     obj_est_iso = obj_est_iso*(np.sum(img_true)/np.sum(img_est_iso))
     img_est_iso = model_cpu_iso.forward(obj_est_iso)
