@@ -48,9 +48,10 @@ class smolm():
     def forward(self, obj):
         
         # simulate the image
+        shape_img = (self.obj_size['width'],self.obj_size['height'])
         obj_fft = np.fft.rfft2(np.fft.ifftshift(obj, (2,3)))
         img_fft = self.psf_fft * obj_fft
-        img = np.fft.ifftshift(np.fft.irfft2(img_fft), (3,4))
+        img = np.fft.ifftshift(np.fft.irfft2(img_fft,s=shape_img), axes=(3,4))
         img = np.sum(img, axis=1)
         img = np.sum(img, axis=1)
 

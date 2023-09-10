@@ -10,243 +10,292 @@ from scipy.io import loadmat, savemat
 import pyutils.GPU_module as gpu
 import pyutils.CPU_module as cpu
 import pyutils.m2_to_m1 as convert
-import pandas as pd 
+import pandas as pd
 import matplotlib as mpl
 
-
 ### CUDA setup ###
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cuda' if torch.cuda.is_available()  else 'cpu'
 print('Using ' + device)
+NO_ORIEN_GROUP = ['flat ring gamma 0','tilted ring gamma 0','fiber gamma 0',
+                  'flat surface gamma 0','tilted surface gamma 0','hemisphere gamma 0']
 
 ### document setup ###
-psf_file = 'MVR_zf1000_3pixelsz_z10' # channel number x orientation x Z x X x Y
-object_file_list = ['flat ring gamma 1']
-initial_file_list = ['flat ring initial']
-# object_file_list = ['fiber gamma 1', 'fiber gamma 0.5', 'fiber gamma 0','tilted ring gamma 1', 'tilted ring gamma 0.5', 'tilted ring gamma 0'] # orientation x Z x X x Y
-# initial_file_list = ['fiber initial', 'fiber initial', 'fiber initial', 'tilted ring initial', 'tilted ring initial', 'tilted ring initial']
-Bstruct_file = 'B_ZScanned_zf1000_PSFsz_61'
+psf_file = 'MVR_zf500_pixelsz_z23' # channel number x orientation x Z x X x Y
+object_file_list = ['flat ring gamma 1','flat ring gamma 0.5','flat ring gamma 0',
+                    'tilted ring gamma 1','tilted ring gamma 0.5','tilted ring gamma 0',
+                    'fiber gamma 1','fiber gamma 0.5', 'fiber gamma 0']
+initial_file_list = ['flat ring initial','flat ring initial','flat ring initial',
+                     'tilted ring initial','tilted ring initial','tilted ring initial',
+                     'fiber initial','fiber initial','fiber initial']
+
+object_file_list = ['hemisphere gamma 1','hemisphere gamma 0.5','hemisphere gamma 0',
+                    'flat surface gamma 1','flat surface gamma 0.5', 'flat surface gamma 0',
+                    'tilted surface gamma 1','tilted surface gamma 0.5','tilted surface gamma 0']
+initial_file_list = ['hemisphere initial','hemisphere initial','hemisphere initial',
+                     'flat surface initial','flat surface initial','flat surface initial',
+                     'tilted surface initial','tilted surface initial','tilted surface initial']
+
+object_file_list = ['simulated lipid membrane']
+initial_file_list = ['simulated lipid membrane initial']
+
+object_group_name = 'weighted 1d smax 10e4'
+Bstruct_file = 'B_ZScanned_zf5e-07_101'
 image_file = ''
-num_of_trials = 5
-factor = 100
+num_of_trials = 1
+factor = 1
+ERROR_DISTRIBUTION_FLAG = True
 
 psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
 
 ### hyperparams setup ###
 optim_param = dict()
-optim_param['learning_rate'] = 0.01
+optim_param['learning_rate'] = 0.05
 optim_param['max_iter'] = 1500
-optim_param['lambda_L1'] = 350
+optim_param['lambda_L1'] = 100
 optim_param['lambda_TV'] = 0
 optim_param['lambda_I'] = 5
 
-accuracy = np.zeros((len(object_file_list),num_of_trials))
+orien_acc_total = np.zeros((len(object_file_list),num_of_trials))
+fp_total = np.zeros((len(object_file_list),num_of_trials))
+fn_total = np.zeros((len(object_file_list),num_of_trials))
+gamma_acc_total = np.zeros((len(object_file_list),num_of_trials))
+s_acc_total = np.zeros((len(object_file_list),num_of_trials))
+
+# for orientation error vs. gt theta/phi plot
+theta_bin = np.zeros((9,1))
+theta_cnt = np.zeros((9,1))
+theta = np.linspace(np.pi/2/18,np.pi/2-np.pi/2/18,num=9,endpoint=True)
+phi_bin = np.zeros((18,1))
+phi_cnt = np.zeros((18,1))
+phi = np.linspace(-np.pi+np.pi/18,np.pi-np.pi/18,num=18,endpoint=True)
+
+# for orientation error vs. z
+z_bin_orien = np.zeros((10,1))
+z_cnt_orien = np.zeros((10,1))
+z_bin_fp = np.zeros((10,1))
+z_bin_fn = np.zeros((10,1))
 
 for idx_obj in range (len(object_file_list)):
-    object_gt = loadmat(os.path.join('performance test objects', object_file_list[idx_obj]+'.mat'))['object']*factor
-    object_initial = loadmat(os.path.join('performance test initials', initial_file_list[idx_obj]+'.mat'))['initial']*factor
+    object_gt = loadmat(os.path.join('performance test objects new', object_file_list[idx_obj]+'.mat'))['object']*factor
+    object_initial = loadmat(os.path.join('performance test initials new', initial_file_list[idx_obj]+'.mat'))['initial']*factor
     Bstruct = loadmat(os.path.join('psf',Bstruct_file+'.mat'))['Bstruct']
     object_size = (6,psf.shape[2],psf.shape[3],psf.shape[4])
     object_iso_size = (1,psf.shape[2],psf.shape[3],psf.shape[4])
     model_cpu = cpu.smolm(psf, object_size)
     image_raw = model_cpu.forward(object_gt)
-    s_gt, m1_gt, z_gt, x_gt, y_gt = convert.m2_to_m1(object_gt,Bstruct,factor*10)
+    s_gt, m1_gt, z_gt, x_gt, y_gt = convert.m2_to_m1(object_gt,Bstruct,factor/10)
+    total_voxel_num = object_gt.shape[1]*object_gt.shape[2]*object_gt.shape[3]
 
     # convert to angle representation
-
     theta_gt = np.degrees(np.arccos(m1_gt[:,2]))
-    phi_gt = np.degrees(np.arctan(m1_gt[:,1]/m1_gt[:,0]))
-
-    # # plot the object
-    # theta_normed = plt.Normalize(np.min(theta_gt), np.max(theta_gt))
-    # theta_color = mpl.cm.cool(theta_normed(theta_gt))
-
-    # fig1 = plt.figure()
-    # ax1 = fig1.add_subplot(111, projection='3d')
-    # a1 = ax1.scatter(x_gt, y_gt, z_gt, c=theta_color, marker='o', alpha=0.4)
-    # fig1.colorbar(plt.cm.ScalarMappable(norm=theta_normed, cmap='cool'), ax=ax1)
-
-    # ax1.set_xlabel('X voxel')
-    # ax1.set_ylabel('Y voxel')
-    # ax1.set_zlabel('Z voxel')
-
-    # plt.title('theta gt')
-
-    # phi_normed = plt.Normalize(np.min(phi_gt), np.max(phi_gt))
-    # phi_color = mpl.cm.hsv(phi_normed(phi_gt))
-
-    # fig2 = plt.figure()
-    # ax2 = fig2.add_subplot(111, projection='3d')
-    # a2 = ax2.scatter(x_gt, y_gt, z_gt, c=phi_color, marker='o', alpha=0.4)
-    # fig2.colorbar(plt.cm.ScalarMappable(norm=phi_normed,cmap='hsv'), ax=ax2)
-
-    # ax2.set_xlabel('X voxel')
-    # ax2.set_ylabel('Y voxel')
-    # ax2.set_zlabel('Z voxel')
-
-    # plt.title('phi gt')
-
-    # s_normed = plt.Normalize(np.min(s_gt), np.max(s_gt))
-    # s_color = mpl.cm.hsv(s_normed(s_gt))
-
-    # fig3 = plt.figure()
-    # ax3 = fig3.add_subplot(111, projection='3d')
-    # a3 = ax3.scatter(x_gt, y_gt, z_gt, c=s_color, marker='o', alpha=0.4)
-    # fig3.colorbar(plt.cm.ScalarMappable(norm=s_normed,cmap='hsv'), ax=ax3)
-
-    # ax3.set_xlabel('X voxel')
-    # ax3.set_ylabel('Y voxel')
-    # ax3.set_zlabel('Z voxel')
-
-    # plt.title('s gt')
-
-    # gamma_gt = m1_gt[:,3]
-    # gamma_normed = plt.Normalize(np.min(gamma_gt), np.max(gamma_gt))
-    # gamma_color = mpl.cm.hsv(gamma_normed(gamma_gt))
-
-    # fig4 = plt.figure()
-    # ax4 = fig4.add_subplot(111, projection='3d')
-    # a4 = ax4.scatter(x_gt, y_gt, z_gt, c=gamma_color, marker='o', alpha=0.4)
-    # fig4.colorbar(plt.cm.ScalarMappable(norm=gamma_normed,cmap='hsv'), ax=ax4)
-
-    # ax4.set_xlabel('X voxel')
-    # ax4.set_ylabel('Y voxel')
-    # ax4.set_zlabel('Z voxel')
-
-    # plt.title('gamma gt')
-
-    plt.show()
-
+    phi_gt = np.degrees(np.arctan2(m1_gt[:,1],m1_gt[:,0]))
+    phi_gt[np.equal(m1_gt[:,0],0) & np.equal(m1_gt[:,1],0)] = np.nan
 
     for trial in range (num_of_trials):
         image_noisy = np.random.poisson(image_raw)
         object_est, loss = gpu.estimate(psf, object_initial, 'dipole', image_noisy, optim_param['learning_rate'], 
-                                        optim_param['max_iter'], optim_param['lambda_TV'], optim_param['lambda_TV'], 
+                                        optim_param['max_iter'], optim_param['lambda_L1'], optim_param['lambda_TV'], 
                                         optim_param['lambda_I'], device)
-        s_est, m1_est, z_est, x_est, y_est = convert.m2_to_m1(object_est,Bstruct,1000)
-
-        
+        s_est, m1_est, z_est, x_est, y_est = convert.m2_to_m1(object_est,Bstruct,factor/10)
 
         # compare
-        acc_s, acc_orientation, acc_gamma, acc_z, acc_x, acc_y= convert.orientation_acc(s_gt,m1_gt,z_gt,x_gt,
-                                                                                        y_gt,s_est,m1_est,z_est,x_est,y_est)
+        acc_s, acc_orientation, acc_gamma, acc_z, acc_x, acc_y, acc_gt_s, acc_gt_theta, acc_gt_phi, fp_z, fn_z = convert.acc_eval(s_gt,m1_gt,z_gt,x_gt,y_gt,s_est,m1_est,z_est,x_est,y_est,total_voxel_num)
 
         theta_est = np.degrees(np.arccos(m1_est[:,2]))
-        phi_est = np.degrees(np.arctan(m1_est[:,1]/m1_est[:,0]))
+        phi_est = np.degrees(np.arctan2(m1_est[:,1],m1_est[:,0]))
+        phi_est[np.equal(m1_est[:,0],0) & np.equal(m1_est[:,1],0)] = np.nan
 
-        theta_norm = plt.Normalize(0, 90)
-        theta_gt_color = mpl.cm.cool(theta_norm(theta_gt))
-        theta_est_color = mpl.cm.cool(theta_norm(theta_est))
+        if object_file_list[idx_obj] in NO_ORIEN_GROUP:  
+            orien_acc_total[idx_obj,trial] = np.nan
+        else:
+            for i in range (acc_orientation.shape[0]):
+                theta_idx = (acc_gt_theta[i]/10).astype('int64')
+                if theta_idx == 9:
+                    theta_idx = 8
+                theta_bin[theta_idx] += acc_orientation[i]
+                theta_cnt[theta_idx] += 1
+                if np.isnan(acc_gt_phi[i]) == False:
+                    phi_idx = ((acc_gt_phi[i]+180)/20).astype('int64')
+                    if phi_idx == 18:
+                        phi_idx = 17
+                    phi_bin[phi_idx] += acc_orientation[i]
+                    phi_cnt[phi_idx] += 1
+                z_idx = z_gt[i]
+                z_bin_orien[z_idx] += acc_orientation[i]
+                z_cnt_orien[z_idx] += 1
 
-        fig1 = plt.figure()
-        ax11 = fig1.add_subplot(221, projection='3d')
-        a11 = ax11.scatter(x_gt, y_gt, z_gt, c=theta_gt_color, marker='o', alpha=0.4)
-        ax12 = fig1.add_subplot(222, projection='3d')
-        a12 = ax12.scatter(x_est, y_est, z_est, c=theta_est_color, marker='^', alpha=0.4)
-        fig1.colorbar(plt.cm.ScalarMappable(norm=theta_norm, cmap='cool'), ax=ax11)
-        fig1.colorbar(plt.cm.ScalarMappable(norm=theta_norm, cmap='cool'), ax=ax12)
+            orien_acc_total[idx_obj,trial] = np.sum(acc_orientation)/len(acc_orientation)
 
+        for i in range (len(fp_z)):
+            z_idx = fp_z[i]
+            z_bin_fp[int(z_idx)] += 1
 
-        ax11.set_xlabel('X voxel')
-        ax11.set_ylabel('Y voxel')
-        ax11.set_zlabel('Z voxel')
+        for i in range (len(fn_z)):
+            z_idx = fn_z[i]
+            z_bin_fn[int(z_idx)] += 1
 
-        plt.title('theta')
+        if ERROR_DISTRIBUTION_FLAG:
 
-        phi_norm = plt.Normalize(-90,90)
-        phi_gt_color = mpl.cm.hsv(phi_norm(phi_gt))
-        phi_est_color = mpl.cm.hsv(phi_norm(phi_est))
+            theta_norm = plt.Normalize(0,90)
+            phi_norm = plt.Normalize(-180,180)
+            acc_norm = plt.Normalize(0,90)
 
-        fig2 = plt.figure()
-        ax2 = fig2.add_subplot(111, projection='3d')
-        a21 = ax2.scatter(x_gt, y_gt, z_gt, c=phi_gt_color, marker='o', alpha=0.4)
-        a22 = ax2.scatter(x_est, y_est, z_est, c=phi_est_color, marker='^', alpha=0.4)
-        fig2.colorbar(plt.cm.ScalarMappable(norm=phi_norm, cmap='hsv'), ax=ax2)
+            for z in range (10):
 
-        ax2.set_xlabel('X voxel')
-        ax2.set_ylabel('Y voxel')
-        ax2.set_zlabel('Z voxel')
+                idx_temp = np.where(np.equal(z_gt,z))
+                x_temp = x_gt[idx_temp]
+                y_temp = y_gt[idx_temp]
+                theta_color_temp = mpl.cm.cool(theta_norm(theta_gt[idx_temp[0]]))
+                phi_color_temp = mpl.cm.rainbow(phi_norm(phi_gt[idx_temp[0]]))
 
-        plt.title('phi')
+                fig_temp = plt.figure()
+                ax11 = fig_temp.add_subplot(221)
+                ax11.scatter(x_temp,y_temp,c=theta_color_temp,marker='s',s=5)
+                plt.title('theta gt at z = ' + str(z))
+                plt.xlim(0,60)
+                plt.ylim(0,60)
+                ax11.set_aspect('equal', adjustable='box')
+                fig_temp.colorbar(plt.cm.ScalarMappable(norm=theta_norm, cmap='cool'), ax=ax11)
 
+                ax12 = fig_temp.add_subplot(222)
+                ax12.scatter(x_temp,y_temp,c=phi_color_temp,marker='s',alpha=1,s=5)
+                plt.title('phi gt at z = ' + str(z))
+                plt.xlim(0,60)
+                plt.ylim(0,60)
+                ax12.set_aspect('equal', adjustable='box')
+                fig_temp.colorbar(plt.cm.ScalarMappable(norm=phi_norm, cmap='rainbow'), ax=ax12)
 
-        gamma_gt = m1_gt[:,3]
-        gamma_est = m1_est[:,3]
-        gamma_norm = plt.Normalize(np.min([np.min(gamma_gt),np.min(gamma_est)]),np.max([np.max(gamma_gt),np.max(gamma_est)]))
-        gamma_norm = plt.Normalize(0,1)
-        gamma_gt_color = mpl.cm.coolwarm(gamma_norm(gamma_gt))
-        gamma_est_color = mpl.cm.coolwarm(gamma_norm(gamma_est))
+                idx_temp = np.where(np.equal(z_est,z))
+                x_temp = x_est[idx_temp]
+                y_temp = y_est[idx_temp]
+                theta_color_temp = mpl.cm.cool(theta_norm(theta_est[idx_temp[0]]))
+                phi_color_temp = mpl.cm.rainbow(phi_norm(phi_est[idx_temp[0]]))
 
-        fig3 = plt.figure()
-        ax3 = fig3.add_subplot(111,projection='3d')
-        a31 = ax3.scatter(x_gt, y_gt, z_gt, c=gamma_gt_color, marker='o', alpha=0.4)
-        a32 = ax3.scatter(x_est, y_est, z_est, c=gamma_est_color, marker='^', alpha=0.4)
-        fig3.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='coolwarm'), ax=ax3)
+                ax13 = fig_temp.add_subplot(223)
+                ax13.scatter(x_temp,y_temp,c=theta_color_temp,marker='s',alpha=1,s=5)
+                plt.title('theta est at z = ' + str(z))
+                plt.xlim(0,60)
+                plt.ylim(0,60)
+                ax13.set_aspect('equal', adjustable='box')
+                fig_temp.colorbar(plt.cm.ScalarMappable(norm=theta_norm, cmap='cool'), ax=ax13)
 
-        ax3.set_xlabel('X voxel')
-        ax3.set_ylabel('Y voxel')
-        ax3.set_zlabel('Z voxel')
+                ax14 = fig_temp.add_subplot(224)
+                ax14.scatter(x_temp,y_temp,c=phi_color_temp,marker='s',alpha=1,s=5)
+                plt.title('phi est at z = ' + str(z))
+                plt.xlim(0,60)
+                plt.ylim(0,60)
+                ax14.set_aspect('equal', adjustable='box')
+                fig_temp.colorbar(plt.cm.ScalarMappable(norm=phi_norm, cmap='rainbow'), ax=ax14)
 
-        plt.title('phi')
+                mng = plt.get_current_fig_manager()
+                mng.full_screen_toggle()
+                plt.savefig('orientation' + "/file%02d.png" % z)
+                plt.close(fig_temp)
 
-        
-        # phi_normed = plt.Normalize(np.min(phi_est), np.max(phi_est))
-        # phi_color = mpl.cm.hsv(phi_normed(phi_est))
+                idx_temp_2 = np.where(np.equal(acc_z,z))
+                acc_color_temp = mpl.cm.hot(acc_norm(acc_orientation[idx_temp_2[0]]))
 
-        # fig4 = plt.figure()
-        # ax4 = fig4.add_subplot(111, projection='3d')
-        # a4 = ax4.scatter(x_est, y_est, z_est, c=phi_color, marker='o', alpha=0.4)
-        # fig4.colorbar(plt.cm.ScalarMappable(norm=phi_normed,cmap='hsv'), ax=ax4)
+                fig_temp = plt.figure()
+                ax = fig_temp.add_subplot(111)
+                ax.scatter(acc_x[idx_temp_2],acc_y[idx_temp_2],c=acc_color_temp,marker='s',alpha=1,s=50)
+                plt.title('orientation accuracy at z = ' + str(z))
+                plt.xlim(0,60)
+                plt.ylim(0,60)
+                ax14.set_aspect('equal', adjustable='box')
+                fig_temp.colorbar(plt.cm.ScalarMappable(norm=acc_norm, cmap='hot'), ax=ax)
 
-        # ax4.set_xlabel('X voxel')
-        # ax4.set_ylabel('Y voxel')
-        # ax4.set_zlabel('Z voxel')
+                mng = plt.get_current_fig_manager()
+                mng.full_screen_toggle()
+                plt.savefig('orientation accuracy' + "/file%02d.png" % z)
+                plt.close(fig_temp)
 
-        # plt.title('phi est')
+            gamma_norm = plt.Normalize(0,1)
+            gamma_gt = m1_gt[:,3]
+            gamma_est = m1_est[:,3]
 
-        acc_orientation_normed = plt.Normalize(np.min(acc_orientation),np.max(acc_orientation))
-        acc_orientation_color = mpl.cm.inferno(acc_orientation_normed(acc_orientation))
+            for z in range (10):
 
-        fig5 = plt.figure()
-        ax5 = fig5.add_subplot(111, projection='3d')
-        a5 = ax5.scatter(acc_x, acc_y, acc_z, c=acc_orientation_color, marker='o', alpha=0.4)
-        fig5.colorbar(plt.cm.ScalarMappable(norm=acc_orientation_normed, cmap='inferno'), ax=ax5)
+                fig_gamma = plt.figure()
 
-        ax5.set_xlabel('X voxel')
-        ax5.set_ylabel('Y voxel')
-        ax5.set_zlabel('Z voxel')
+                idx_temp = np.where(np.equal(z_gt,z))
+                x_temp = x_gt[idx_temp]
+                y_temp = y_gt[idx_temp]
+                gamma_color_temp = mpl.cm.coolwarm(gamma_norm(gamma_gt[idx_temp[0]]))
 
-        plt.title('orientation error')
+                ax_g1 = fig_gamma.add_subplot(131) 
+                ax_g1.scatter(x_temp,y_temp,c=gamma_color_temp,marker='s',s=5)
+                plt.title('gamma gt at z = ' + str(z))
+                plt.xlim(0,60)
+                plt.ylim(0,60)
+                ax_g1.set_aspect('equal', adjustable='box')
+                fig_gamma.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='coolwarm'), ax=ax_g1)
 
-        # acc_s_normed = plt.Normalize(np.min(acc_s),np.max(acc_s))
-        # acc_s_color = mpl.cm.hot(acc_s_normed(acc_s))
+                idx_temp = np.where(np.equal(z_est,z))
+                x_temp = x_est[idx_temp]
+                y_temp = y_est[idx_temp]
+                gamma_color_temp = mpl.cm.coolwarm(gamma_norm(gamma_est[idx_temp[0]]))
 
-        # fig6 = plt.figure()
-        # ax6 = fig6.add_subplot(111, projection='3d')
-        # a6 = ax6.scatter(acc_x, acc_y, acc_z, c=acc_s_color, marker='o', alpha=0.4)
-        # fig6.colorbar(plt.cm.ScalarMappable(norm=acc_s_normed, cmap='hot'), ax=ax6)
+                ax_g2 = fig_gamma.add_subplot(132) 
+                ax_g2.scatter(x_temp,y_temp,c=gamma_color_temp,marker='s',s=5)
+                plt.title('gamma est at z = ' + str(z))
+                plt.xlim(0,60)
+                plt.ylim(0,60)
+                ax_g2.set_aspect('equal', adjustable='box')
+                fig_gamma.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='coolwarm'), ax=ax_g2)
 
-        # ax6.set_xlabel('X voxel')
-        # ax6.set_ylabel('Y voxel')
-        # ax6.set_zlabel('Z voxel')
+                idx_temp = np.where(np.equal(acc_z,z))
+                x_temp = acc_x[idx_temp]
+                y_temp = acc_y[idx_temp]
+                gamma_color_temp = mpl.cm.inferno(gamma_norm(acc_gamma[idx_temp[0]]))
 
-        # plt.title('s error')
+                ax_g3 = fig_gamma.add_subplot(133) 
+                ax_g3.scatter(x_temp,y_temp,c=gamma_color_temp,marker='s',s=5)
+                plt.title('gamma error at z = ' + str(z))
+                plt.xlim(0,60)
+                plt.ylim(0,60)
+                ax_g3.set_aspect('equal', adjustable='box')
+                fig_gamma.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='inferno'), ax=ax_g3)
 
-        # acc_gamma_normed = plt.Normalize(np.min(acc_gamma),np.max(acc_gamma))
-        # acc_gamma_color = mpl.cm.hot(acc_gamma_normed(acc_gamma))
+                mng = plt.get_current_fig_manager()
+                mng.full_screen_toggle()
+                plt.savefig('gamma' + "/file%02d.png" % z)
+                plt.close(fig_gamma)
 
-        # fig7 = plt.figure()
-        # ax7 = fig7.add_subplot(111, projection='3d')
-        # a7 = ax7.scatter(acc_x, acc_y, acc_z, c=acc_gamma_color, marker='o', alpha=0.4)
-        # fig7.colorbar(plt.cm.ScalarMappable(norm=acc_gamma_normed, cmap='hot'), ax=ax7)
+        fp_total[idx_obj,trial] = np.sum(fp_z)/total_voxel_num
+        fn_total[idx_obj,trial] = np.sum(fn_z)/total_voxel_num
+        gamma_acc_total[idx_obj,trial] = np.sum(acc_gamma)/len(acc_gamma)
+        s_acc_total[idx_obj,trial] = np.sum(acc_s)/len(acc_s)
 
-        # ax7.set_xlabel('X voxel')
-        # ax7.set_ylabel('Y voxel')
-        # ax7.set_zlabel('Z voxel')
+# pd.DataFrame(np.concatenate((phi_bin,phi_cnt),axis=1)).to_csv(object_group_name + ' phi vs o_acc.csv')
+# pd.DataFrame(np.concatenate((theta_bin,theta_cnt),axis=1)).to_csv(object_group_name + ' theta vs o_acc.csv')
+# pd.DataFrame(orien_acc_total).to_csv(object_group_name + ' orien acc summary.csv')
+# pd.DataFrame(fp_total).to_csv(object_group_name + ' fp summary.csv')
+# pd.DataFrame(fn_total).to_csv(object_group_name + ' fn summary.csv')
+# pd.DataFrame(gamma_acc_total).to_csv(object_group_name + ' gamma summary.csv')
+# pd.DataFrame(s_acc_total).to_csv(object_group_name + ' brt summary.csv')
 
-        # plt.title('gamma error')
+for z in range (len(z_cnt_orien)):
+    if z_cnt_orien[z] != 0:
+        z_bin_orien[z] = z_bin_orien[z]/z_cnt_orien[z]
 
-        plt.show()
+fig_z_hist = plt.figure()
+ax_zhist1 = fig_z_hist.add_subplot(221)
+ax_zhist1.bar(np.linspace(0,9,num=10,endpoint=True),z_bin_orien.squeeze())
+ax_zhist1.set_title('z vs. orientation error')
+ax_zhist1.set_xlabel('z layer')
+ax_zhist1.set_ylabel('average orien. acc.')
 
-        accuracy[idx_obj,trial] = np.sum(acc_orientation)/len(acc_orientation)
+z_voxel_cnt = object_gt.shape[2]*object_gt.shape[3]*len(object_file_list)*num_of_trials
+ax_zhist2 = fig_z_hist.add_subplot(222)
+ax_zhist2.bar(np.linspace(0,9,num=10,endpoint=True),z_bin_fp.squeeze()/z_voxel_cnt/2)
+ax_zhist2.set_title('z vs. fp rate')
+ax_zhist2.set_xlabel('z layer')
+ax_zhist2.set_ylabel('average fp rate')
 
-pd.DataFrame(accuracy).to_csv("test.csv")
+ax_zhist3 = fig_z_hist.add_subplot(223)
+ax_zhist3.bar(np.linspace(0,9,num=10,endpoint=True),z_bin_fn.squeeze()/z_voxel_cnt/2)
+ax_zhist3.set_title('z vs. fn rate')
+ax_zhist3.set_xlabel('z layer')
+ax_zhist3.set_ylabel('average fn rate')
+
+plt.show()

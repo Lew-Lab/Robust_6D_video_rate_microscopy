@@ -61,7 +61,7 @@ def video_obj(obj, title_name, folder_name):
             for i in range (6):
                 ax = axs[np.int16(i/3)][i-np.int16(i/3)*3]
                 temp = ax.imshow(np.transpose(slice[i,...]), vmin=vmin[i], vmax=vmax[i], origin='lower')
-                ax.set_axis_off()
+                # ax.set_axis_off()
                 ax.set_title(titles[i])
                 fig.colorbar(temp, ax=ax, location='right')
 

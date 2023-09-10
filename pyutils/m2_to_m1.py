@@ -57,10 +57,11 @@ def m2_to_m1(object, Bstruct, brightness_threshold):
 
         # estimate and store first moments
         estM1 = secondM2SymmConeWeighted(b, B, sumNorm, secM/signal, signal, 1e-12)
-        estM1[2]= np.abs(estM1[2])
+        if estM1[2] < 0:
+            estM1[:3] = -estM1[:3]
         m1[loc,:] = estM1
 
-    return s, m1, z, x, y
+    return s[np.argwhere(s > brightness_threshold)], m1, z, x, y
 
 
 def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
@@ -174,44 +175,75 @@ def constraint(z):
     '''Constraint function'''
     return np.sum(z[0:3]**2, 0) - 1
 
-def orientation_acc(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est):
+def acc_eval(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est, total_voxel_num):
     pointer_gt = 0 
     pointer_est = 0
-    acc_orientation = []
-    acc_gamma = []
-    acc_s = []
-    acc_z = []
-    acc_x = []
-    acc_y = []
+    acc_orientation_unweighted = np.array([])
+    acc_orientation = np.array([])
+    acc_gamma = np.array([])
+    acc_s = np.array([])
+    acc_z = np.array([])
+    acc_x = np.array([])
+    acc_y = np.array([])
+    acc_gt_theta = np.array([])
+    acc_gt_phi = np.array([])
+    acc_gt_s = np.array([])
+    fp = np.array([])
+    fp_z = np.array([])
+    fn = np.array([])
+    fn_z = np.array([])
 
     while (pointer_gt < len(x_gt) and pointer_est < len(x_est)):
 
         if y_gt[pointer_gt][0] > y_est[pointer_est][0]:
+            fp_z = np.append(fp_z,z_est[pointer_est][0])
             pointer_est += 1
         elif y_gt[pointer_gt][0] < y_est[pointer_est][0]:
+            fn_z = np.append(fn_z,z_gt[pointer_gt][0])
             pointer_gt += 1
         elif y_gt[pointer_gt][0] == y_est[pointer_est][0]:
             if x_gt[pointer_gt][0] > x_est[pointer_est][0]:
+                fp_z = np.append(fp_z,z_est[pointer_est][0])
                 pointer_est += 1
             elif x_gt[pointer_gt][0] < x_est[pointer_est][0]:
+                fn_z = np.append(fn_z,z_gt[pointer_gt][0])
                 pointer_gt += 1
             elif x_gt[pointer_gt][0] == x_est[pointer_est][0]:
                 if z_gt[pointer_gt][0] > z_est[pointer_est][0]:
+                    fp_z = np.append(fp_z,z_est[pointer_est][0])
                     pointer_est += 1
                 elif z_gt[pointer_gt][0] < z_est[pointer_est][0]:
+                    fn_z = np.append(fn_z,z_gt[pointer_gt][0])
                     pointer_gt += 1
                 elif z_gt[pointer_gt][0] == z_est[pointer_est][0]:
-                    a = m1_gt[pointer_gt,:3]
-                    b = m1_est[pointer_est,:3]
-                    acc = np.arccos(np.sum(a*b)/(np.sqrt(np.sum(a**2))*np.sqrt(np.sum(b**2))))
-                    if np.isnan(acc) == False or np.isnan(acc) == True:
-                        acc_orientation.append(np.rad2deg(acc))
-                        acc_gamma.append(np.abs(m1_gt[pointer_gt,3]-m1_est[pointer_gt,3]))
-                        acc_s.append(np.abs(s_gt[pointer_gt]-s_est[pointer_gt]))
-                        acc_z.append(z_gt[pointer_gt][0])
-                        acc_x.append(x_gt[pointer_gt][0])
-                        acc_y.append(y_gt[pointer_gt][0])
+                    a_mu = m1_gt[pointer_gt,:3]
+                    b_mu = m1_est[pointer_est,:3]
+                    a_gamma = m1_gt[pointer_gt,3]
+                    b_gamma = m1_est[pointer_est,3]
+                    acc1 = np.degrees(np.arccos(np.sum(a_mu*b_mu)/(np.sqrt(np.sum(a_mu**2))*np.sqrt(np.sum(b_mu**2)))))
+                    acc2 = np.degrees(np.arccos(np.sum(-a_mu*b_mu)/(np.sqrt(np.sum(a_mu**2))*np.sqrt(np.sum(b_mu**2)))))
+                    acc_orientation = np.append(acc_orientation,np.min(np.asarray([acc1,acc2])))
+                    acc_gamma = np.append(acc_gamma, np.abs(a_gamma-b_gamma))
+                    acc_s = np.append(acc_s, np.abs(s_gt[pointer_gt][0]-s_est[pointer_est][0])/s_gt[pointer_gt][0])
+                    acc_z = np.append(acc_z, z_gt[pointer_gt][0])
+                    acc_x = np.append(acc_x, x_gt[pointer_gt][0])
+                    acc_y = np.append(acc_y, y_gt[pointer_gt][0])
+                    acc_gt_theta = np.append(acc_gt_theta, np.degrees(np.arccos(a_mu[2])))
+                    if a_mu[1]==0 and a_mu[0] == 0:
+                        acc_gt_phi = np.append(acc_gt_phi,np.nan)
+                    else:
+                        acc_gt_phi = np.append(acc_gt_phi,np.degrees(np.arctan2(a_mu[1],a_mu[0])))
+                    acc_gt_s = np.append(acc_gt_s,s_gt[pointer_gt][0])
                     pointer_gt += 1
                     pointer_est += 1
-    
-    return acc_s, acc_orientation, acc_gamma, acc_z, acc_x, acc_y
+
+    acc_s = np.asarray(acc_s)
+    acc_orientation = np.asarray(acc_orientation)
+    acc_gamma = np.asarray(acc_gamma)
+    acc_z = np.asarray(acc_z)
+    acc_x = np.asarray(acc_x)
+    acc_y = np.asarray(acc_y)
+    acc_gt_theta = np.asarray(acc_gt_theta)
+    acc_gt_phi = np.asarray(acc_gt_phi)
+
+    return acc_s, acc_orientation, acc_gamma, acc_z, acc_x, acc_y, acc_gt_s, acc_gt_theta, acc_gt_phi, fp_z, fn_z

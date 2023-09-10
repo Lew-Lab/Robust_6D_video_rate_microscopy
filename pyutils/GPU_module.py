@@ -57,15 +57,16 @@ class smolm(nn.Module):
     def forward(self, obj):
         
         # simulate the image
+        shape_img = (self.obj_size['width'],self.obj_size['height'])
         obj_fft = fft.rfft2(fft.ifftshift(obj, (2,3)))
         img_fft = self.psf_fft * obj_fft
-        img = fft.ifftshift(fft.irfft2(img_fft), (3,4))
+        img = fft.ifftshift(fft.irfft2(img_fft,s=shape_img), (3,4))
         img = torch.sum(img, 1, keepdim=False)
         img = torch.sum(img, 1, keepdim=False)
 
         return img
 
-def initialization(psf, obj, img_true, lr, max_iter, lambda_l1, lambda_tv, lambda_I, device):
+def initialization(psf, obj_size, obj_iso_size, img_true, lr, max_iter, lambda_l1, lambda_tv, lambda_I, device):
 
     ''' The initialization function estimates the shape of the object.
 
@@ -84,9 +85,6 @@ def initialization(psf, obj, img_true, lr, max_iter, lambda_l1, lambda_tv, lambd
     initial: 6 x Z x X x Y. Isotropic initial object. '''
 
     psf_iso = np.sum(psf[:,:3,:,:,:],axis=1,keepdims=True)
-    obj_iso = np.sum(obj[:3,:,:,:],axis=0,keepdims=True)
-    obj_size = (6,psf.shape[2],psf.shape[3],psf.shape[4])
-    obj_iso_size = (1,psf.shape[2],psf.shape[3],psf.shape[4])
     model_cpu_iso = cpu.smolm(psf_iso, obj_iso_size)
 
     initial_iso = np.random.rand(1,psf.shape[2],psf.shape[3],psf.shape[4])
@@ -184,7 +182,8 @@ def loss_sparsity(obj,type):
     if type == 's':
         return torch.sum(torch.abs(obj))
     elif type == 'dipole':
-        return torch.sum(torch.sqrt(torch.sum(obj[:3,...]**2,dim=0)))
+        return torch.sum(torch.sqrt(torch.sum(obj**2,dim=0)))
+        # return torch.sum(torch.abs(obj))
 
 def loss_smoothness(obj):
     if obj.shape[1] == 1:
