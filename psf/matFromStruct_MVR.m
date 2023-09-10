@@ -1,7 +1,8 @@
 %% generate mat form struct
-load('B_ZScanned_zf650_PSFsz89_zList1.mat');
 psfsize = systemPar.PSFsz; % set the size of the DSF
 zsize = length(systemPar.zList);
+
+% Blist
 cells = Bstruct.Blist;
 dsf_raMVR = zeros(8,6,zsize,psfsize,psfsize);
 
@@ -14,13 +15,18 @@ for h = 1:zsize
     end
 end
 
-dsf = dsf_raMVR;
+% BsList
+BsList = Bstruct.BsList
 
-save(['dsf_raMVR_psfSZ_' num2str(psfsize) '_zstack_' num2str(zsize)], 'dsf');
+% BHaList
+
+
+% sumNormList
+
 
 %% generate the video
 
-videoname = 'dsf_MVR_zf650_PSFsz89_zList1';
+videoname = 'dsf';
 v = VideoWriter(videoname);
 v.FrameRate = 1;
 open(v);
