@@ -14,7 +14,7 @@ import pyutils.m2_to_m1 as convert
 import pandas as pd
 import matplotlib as mpl
 
-st = time.time()
+
 
 ### CUDA setup ###
 device = 'cuda' if torch.cuda.is_available()  else 'cpu'
@@ -48,7 +48,7 @@ initial_file_list = ['hemisphere initial']
 object_group_name = 'weighted 1d smax 10e4'
 Bstruct_file = 'B_ZScanned_zf1000_61_2000'
 image_file = ''
-num_of_trials = 1
+num_of_trials = 5
 factor = 10000
 ERROR_DISTRIBUTION_FLAG = True
 
@@ -90,7 +90,12 @@ for idx_obj in range (len(object_file_list)):
     object_iso_size = (1,psf.shape[2],psf.shape[3],psf.shape[4])
     model_cpu = cpu.smolm(psf, object_size)
     image_raw = model_cpu.forward(object_gt)
+
+    st = time.time()
     s_gt, m1_gt, z_gt, x_gt, y_gt = convert.m2_to_m1(object_gt,Bstruct,factor/10, device)
+    et = time.time()
+    elapsed = et-st; print('Elapsed: ' + str(elapsed) + ' seconds')
+
     total_voxel_num = object_gt.shape[1]*object_gt.shape[2]*object_gt.shape[3]
 
     # convert to angle representation
@@ -103,7 +108,11 @@ for idx_obj in range (len(object_file_list)):
         object_est, loss = gpu.estimate(psf, object_initial, 'dipole', image_noisy, optim_param['learning_rate'], 
                                         optim_param['max_iter'], optim_param['lambda_L1'], optim_param['lambda_TV'], 
                                         optim_param['lambda_I'], device)
+        
+        st = time.time()
         s_est, m1_est, z_est, x_est, y_est = convert.m2_to_m1(object_est,Bstruct,factor/10, device)
+        et = time.time()
+        elapsed = et-st; print('Elapsed: ' + str(elapsed) + ' seconds')
 
         # compare
         acc_s, acc_orientation, acc_gamma, acc_z, acc_x, acc_y, acc_gt_s, acc_gt_theta, acc_gt_phi, fp_z, fn_z = convert.acc_eval(s_gt,m1_gt,z_gt,x_gt,y_gt,s_est,m1_est,z_est,x_est,y_est,total_voxel_num)
@@ -307,4 +316,4 @@ ax_zhist3.set_ylabel('average fn rate')
 
 plt.show()
 et = time.time()
-elapsed = et-st; print('Elapsed: ' + str(elapsed))
+elapsed = et-st; print('Elapsed: ' + str(elapsed) + ' seconds')

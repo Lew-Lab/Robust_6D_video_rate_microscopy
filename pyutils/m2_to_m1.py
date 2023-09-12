@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from scipy import io
 import scipy
 from scipy import optimize
-from pyutils.autograd_minimize import minimize as torchminimize
+# from pyutils.autograd_minimize import minimize as torchminimize
 
 def m2_to_m1(object, Bstruct, brightness_threshold, device): 
 
@@ -33,7 +33,7 @@ def m2_to_m1(object, Bstruct, brightness_threshold, device):
 
     # retrieve second moments of voxels with localizations
     m2 = np.squeeze(m2[np.argwhere(s > brightness_threshold),:])
-    print(len(m2))
+    # print(len(m2))
 
     # Retrieve Bstruct and define b, B, sumNormList
     BsList = Bstruct['BsList'][0,0] # retrieves BsList from Bstruct
@@ -186,7 +186,6 @@ def symmCone2SecM(z):
 
 
 def objective_fun(z, FIM, secM):
-    '''Objective function, test lambda objective function first'''
     sC2SM = symmCone2SecM(z)
     return torch.matmul(torch.matmul((sC2SM.T - secM), FIM), (sC2SM - secM.T))[0,0]
 
