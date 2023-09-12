@@ -42,10 +42,14 @@ for loc = 1:length(m2)
 
     secM = m2Tmp(1:6); % normalized second moments associated with localization
 
+    %[muxTmp, muyTmp, muzTmp, gammaTmp, x0] = secondM2SymmConeWeighted(BsList, B_HaList, sumNormList, secM, signal, zeros(1,6));
     [muxTmp, muyTmp, muzTmp, gammaTmp, x0] = secondM2SymmConeWeighted(BsList{z(loc)},B_HaList{z(loc)},...
                     sumNormList{z(loc)},secM/signal,signal,1e-12);
-    %[muxTmp, muyTmp, muzTmp, gammaTmp, x0] = secondM2SymmConeWeighted(BsList, B_HaList, sumNormList, secM, signal, zeros(1,6));
-    m1(loc,1:4) = [muxTmp muyTmp abs(muzTmp) gammaTmp]; % fix mu_z to be positive so calculated theta is positive
+
+    m1(loc,1:4) = [muxTmp muyTmp muzTmp gammaTmp]; % fix mu_z to be positive so calculated theta is positive
+    if muzTmp < 0
+        m1(loc,1:3) = -m1(loc,1:3);
+    end
 end
 
 %% recovering angles and wobble:

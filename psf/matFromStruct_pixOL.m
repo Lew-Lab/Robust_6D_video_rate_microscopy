@@ -20,12 +20,9 @@ for h = 1:zsize
     end
 end
 
-dsf = dsf_pixOL;
-save(['dsf_pixOL_psfSZ_' num2str(psfsize) '_zstack_' num2str(zsize)], 'dsf');
-
 %% generate the video
 
-videoname = 'dsf_pixOL';
+videoname = 'dsf';
 v = VideoWriter(videoname);
 v.FrameRate = 1;
 open(v);
