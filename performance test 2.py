@@ -1,6 +1,7 @@
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
+import time
 import torch
 import torch.optim
 import torch.nn.functional as F
@@ -13,6 +14,8 @@ import pyutils.m2_to_m1 as convert
 import pandas as pd
 import matplotlib as mpl
 
+
+
 ### CUDA setup ###
 device = 'cuda' if torch.cuda.is_available()  else 'cpu'
 print('Using ' + device)
@@ -20,29 +23,33 @@ NO_ORIEN_GROUP = ['flat ring gamma 0','tilted ring gamma 0','fiber gamma 0',
                   'flat surface gamma 0','tilted surface gamma 0','hemisphere gamma 0']
 
 ### document setup ###
-psf_file = 'MVR_zf500_pixelsz_z23' # channel number x orientation x Z x X x Y
-object_file_list = ['flat ring gamma 1','flat ring gamma 0.5','flat ring gamma 0',
+psf_file = 'MVR_zf1000_3pixelsz_z10' # channel number x orientation x Z x X x Y
+
+### flat ring objects (comment out if not using entire list) ###
+""" object_file_list = ['flat ring gamma 1','flat ring gamma 0.5','flat ring gamma 0',
                     'tilted ring gamma 1','tilted ring gamma 0.5','tilted ring gamma 0',
                     'fiber gamma 1','fiber gamma 0.5', 'fiber gamma 0']
 initial_file_list = ['flat ring initial','flat ring initial','flat ring initial',
                      'tilted ring initial','tilted ring initial','tilted ring initial',
-                     'fiber initial','fiber initial','fiber initial']
+                     'fiber initial','fiber initial','fiber initial'] """
 
-object_file_list = ['hemisphere gamma 1','hemisphere gamma 0.5','hemisphere gamma 0',
+### hemisphere objects (comment out if not using entire list) ###
+""" object_file_list = ['hemisphere gamma 1','hemisphere gamma 0.5','hemisphere gamma 0',
                     'flat surface gamma 1','flat surface gamma 0.5', 'flat surface gamma 0',
                     'tilted surface gamma 1','tilted surface gamma 0.5','tilted surface gamma 0']
 initial_file_list = ['hemisphere initial','hemisphere initial','hemisphere initial',
                      'flat surface initial','flat surface initial','flat surface initial',
                      'tilted surface initial','tilted surface initial','tilted surface initial']
-
-object_file_list = ['simulated lipid membrane']
-initial_file_list = ['simulated lipid membrane initial']
+ """
+### testing one object at a time ###
+object_file_list = ['hemisphere gamma 1']
+initial_file_list = ['hemisphere initial']
 
 object_group_name = 'weighted 1d smax 10e4'
-Bstruct_file = 'B_ZScanned_zf5e-07_101'
+Bstruct_file = 'B_ZScanned_zf1000_61_2000'
 image_file = ''
-num_of_trials = 1
-factor = 1
+num_of_trials = 5
+factor = 10000
 ERROR_DISTRIBUTION_FLAG = True
 
 psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
@@ -51,7 +58,7 @@ psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
 optim_param = dict()
 optim_param['learning_rate'] = 0.05
 optim_param['max_iter'] = 1500
-optim_param['lambda_L1'] = 100
+optim_param['lambda_L1'] = 200
 optim_param['lambda_TV'] = 0
 optim_param['lambda_I'] = 5
 
@@ -83,7 +90,12 @@ for idx_obj in range (len(object_file_list)):
     object_iso_size = (1,psf.shape[2],psf.shape[3],psf.shape[4])
     model_cpu = cpu.smolm(psf, object_size)
     image_raw = model_cpu.forward(object_gt)
+
+    st = time.time()
     s_gt, m1_gt, z_gt, x_gt, y_gt = convert.m2_to_m1(object_gt,Bstruct,factor/10)
+    et = time.time()
+    elapsed = et-st; print('Elapsed: ' + str(elapsed) + ' seconds')
+
     total_voxel_num = object_gt.shape[1]*object_gt.shape[2]*object_gt.shape[3]
 
     # convert to angle representation
@@ -96,7 +108,11 @@ for idx_obj in range (len(object_file_list)):
         object_est, loss = gpu.estimate(psf, object_initial, 'dipole', image_noisy, optim_param['learning_rate'], 
                                         optim_param['max_iter'], optim_param['lambda_L1'], optim_param['lambda_TV'], 
                                         optim_param['lambda_I'], device)
+        
+        st = time.time()
         s_est, m1_est, z_est, x_est, y_est = convert.m2_to_m1(object_est,Bstruct,factor/10)
+        et = time.time()
+        elapsed = et-st; print('Elapsed: ' + str(elapsed) + ' seconds')
 
         # compare
         acc_s, acc_orientation, acc_gamma, acc_z, acc_x, acc_y, acc_gt_s, acc_gt_theta, acc_gt_phi, fp_z, fn_z = convert.acc_eval(s_gt,m1_gt,z_gt,x_gt,y_gt,s_est,m1_est,z_est,x_est,y_est,total_voxel_num)
