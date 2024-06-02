@@ -58,7 +58,7 @@ class smolm(nn.Module):
         
         # simulate the image
         shape_img = (self.obj_size['width'],self.obj_size['height'])
-        obj_fft = fft.rfft2(fft.ifftshift(obj, (2,3)))
+        obj_fft = fft.rfft2(fft.ifftshift(obj, (2,3))).to(self.device)
         img_fft = self.psf_fft * obj_fft
         img = fft.ifftshift(fft.irfft2(img_fft,s=shape_img), (3,4))
         img = torch.sum(img, 1, keepdim=False)
@@ -121,6 +121,7 @@ def estimate(psf, obj, type, img_true, lr, max_iter, lambda_L1, lambda_TV, lambd
     loss: cost values for each term 'lsq', 'l1', 'tv', 'pos', 'total'. '''
 
     # convert variables from numpy to tensor
+
     obj = torch.tensor(obj, dtype=torch.float32, device=device, requires_grad=True)
     img_true = torch.tensor(img_true, dtype=torch.float32, device=device, requires_grad=False)
     psf = torch.tensor(psf, dtype=torch.float32, device=device, requires_grad=False)

@@ -104,11 +104,28 @@ def plot_img_tight(img, title_name):
         image_blue = np.concatenate((np.transpose(img[4,...]),np.transpose(img[5,...]),np.transpose(img[6,...]),np.transpose(img[7,...])),axis=1)
         fig, axs = plt.subplots(2,1)
         temp = axs[0].imshow(image_red, cmap='gist_heat', origin='lower')
-        axs[0].set_axis_off()
+        # axs[0].set_axis_off()
         fig.colorbar(temp, ax=axs[0])
         temp = axs[1].imshow(image_blue, cmap='bone', origin='lower')
-        axs[1].set_axis_off()
+        # axs[1].set_axis_off()
         fig.colorbar(temp, ax=axs[1])
+        plt.suptitle(title_name)
+        plt.show()
+
+    return
+
+def plot_img_tighter(img, title_name):
+
+    channel = img.shape[0]
+
+    if channel == 8:
+        image = np.concatenate(((img[0,...]),(img[1,...]),
+                                (img[2,...]),(img[3,...]),
+                                (img[4,...]),(img[5,...]),
+                                (img[6,...]),(img[7,...])),
+                                axis=1)
+        temp = plt.imshow(image, cmap='gist_gray', origin='upper')
+        plt.colorbar(temp)
         plt.suptitle(title_name)
         plt.show()
 
@@ -206,6 +223,74 @@ def plot_obj_dipole(obj, slice_dim, slice_loc):
     ax.add_collection(lc)
     ax.margins(0.1)
     plt.show()
+
+    return
+
+def video_obj_1d(s, m1, z, x, y):
+
+    folder_name = 'object Est'
+
+    theta = np.degrees(np.arccos(m1[:,2]))
+    phi = np.degrees(np.arctan2(m1[:,1],m1[:,0]))
+    phi[np.equal(m1[:,0],0) & np.equal(m1[:,1],0)] = np.nan
+    gamma = m1[:,3]
+    theta_norm = plt.Normalize(0,90)
+    phi_norm = plt.Normalize(-180,180)
+    gamma_norm = plt.Normalize(0,1)
+    s_norm = plt.Normalize(0,np.max(s))
+
+    for i in range(45):
+
+        idx = np.where(np.equal(z,i))
+        x_temp = x[idx[0]]
+        y_temp = y[idx[0]]
+        theta_temp = theta[idx[0]]
+        phi_temp = phi[idx[0]]
+        gamma_temp = gamma[idx[0]]
+        s_temp = s[idx[0]]
+
+        theta_color = mpl.cm.cool(theta_norm(theta_temp))
+        phi_color = mpl.cm.rainbow(phi_norm(phi_temp))
+        gamma_color = mpl.cm.coolwarm(gamma_norm(gamma_temp))
+        s_color = mpl.cm.binary(s_norm(s_temp))
+
+        fig_temp = plt.figure()
+        ax11 = fig_temp.add_subplot(221)
+        ax11.scatter(x_temp,y_temp,c=theta_color,marker='s',s=5)
+        plt.title('theta at z = ' + str(i))
+        plt.xlim(0,101)
+        plt.ylim(0,101)
+        ax11.set_aspect('equal', adjustable='box')
+        fig_temp.colorbar(plt.cm.ScalarMappable(norm=theta_norm, cmap='cool'), ax=ax11)
+
+        ax12 = fig_temp.add_subplot(222)
+        ax12.scatter(x_temp,y_temp,c=phi_color,marker='s',alpha=1,s=5)
+        plt.title('phi at z = ' + str(i))
+        plt.xlim(0,101)
+        plt.ylim(0,101)
+        ax12.set_aspect('equal', adjustable='box')
+        fig_temp.colorbar(plt.cm.ScalarMappable(norm=phi_norm, cmap='rainbow'), ax=ax12)
+
+        ax21 = fig_temp.add_subplot(223)
+        ax21.scatter(x_temp,y_temp,c=gamma_color,marker='s',alpha=1,s=5)
+        plt.title('gamma at z = ' + str(i))
+        plt.xlim(0,101)
+        plt.ylim(0,101)
+        ax21.set_aspect('equal', adjustable='box')
+        fig_temp.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='coolwarm'), ax=ax21)
+                
+        ax22 = fig_temp.add_subplot(224)
+        ax22.scatter(x_temp,y_temp,c=s_color,marker='s',alpha=1,s=5)
+        plt.title('brightness at z = ' + str(i))
+        plt.xlim(0,101)
+        plt.ylim(0,101)
+        ax22.set_aspect('equal', adjustable='box')
+        fig_temp.colorbar(plt.cm.ScalarMappable(norm=s_norm, cmap='binary'), ax=ax22)
+
+        mng = plt.get_current_fig_manager()
+        mng.full_screen_toggle()
+        plt.savefig(folder_name + "/file%02d.png" % i)
+        plt.close(fig_temp)
 
     return
 

@@ -12,6 +12,7 @@ import pyutils.CPU_module as cpu
 import pyutils.m2_to_m1 as convert
 import pandas as pd
 import matplotlib as mpl
+import csv
 
 ### CUDA setup ###
 device = 'cuda' if torch.cuda.is_available()  else 'cpu'
@@ -19,31 +20,38 @@ print('Using ' + device)
 NO_ORIEN_GROUP = ['flat ring gamma 0','tilted ring gamma 0','fiber gamma 0',
                   'flat surface gamma 0','tilted surface gamma 0','hemisphere gamma 0']
 
+GAMMA_1_GROUP = ['flat ring gamma 1','tilted ring gamma 1','fiber gamma 1',
+                  'flat surface gamma 1','tilted surface gamma 1','hemisphere gamma 1']
+
+GAMMA_HALF_GROUP = ['flat ring gamma 0.5','tilted ring gamma 0.5','fiber gamma 0.5',
+                  'flat surface gamma 0.5','tilted surface gamma 0.5','hemisphere gamma 0.5']
+
 ### document setup ###
-psf_file = 'MVR_zf500_pixelsz_z23' # channel number x orientation x Z x X x Y
-object_file_list = ['flat ring gamma 1','flat ring gamma 0.5','flat ring gamma 0',
+psf_file = 'MVR_zf1000_3pixelsz_z10' # channel number x orientation x Z x X x Y
+
+object_file_list_1 = ['flat ring gamma 1','flat ring gamma 0.5','flat ring gamma 0',
                     'tilted ring gamma 1','tilted ring gamma 0.5','tilted ring gamma 0',
                     'fiber gamma 1','fiber gamma 0.5', 'fiber gamma 0']
-initial_file_list = ['flat ring initial','flat ring initial','flat ring initial',
+initial_file_list_1 = ['flat ring initial','flat ring initial','flat ring initial',
                      'tilted ring initial','tilted ring initial','tilted ring initial',
                      'fiber initial','fiber initial','fiber initial']
 
-object_file_list = ['hemisphere gamma 1','hemisphere gamma 0.5','hemisphere gamma 0',
+object_file_list_2 = ['hemisphere gamma 1','hemisphere gamma 0.5','hemisphere gamma 0',
                     'flat surface gamma 1','flat surface gamma 0.5', 'flat surface gamma 0',
                     'tilted surface gamma 1','tilted surface gamma 0.5','tilted surface gamma 0']
-initial_file_list = ['hemisphere initial','hemisphere initial','hemisphere initial',
+initial_file_list_2 = ['hemisphere initial','hemisphere initial','hemisphere initial',
                      'flat surface initial','flat surface initial','flat surface initial',
                      'tilted surface initial','tilted surface initial','tilted surface initial']
 
-object_file_list = ['simulated lipid membrane']
-initial_file_list = ['simulated lipid membrane initial']
+object_file_list = object_file_list_1 + object_file_list_2
+initial_file_list = initial_file_list_1 + initial_file_list_2
 
-object_group_name = 'weighted 1d smax 10e4'
-Bstruct_file = 'B_ZScanned_zf5e-07_101'
+object_group_name = 'smax 1e5'
+Bstruct_file = 'B_ZScanned_zf1000_61_2000'
 image_file = ''
-num_of_trials = 1
-factor = 1
-ERROR_DISTRIBUTION_FLAG = True
+num_of_trials = 5
+factor = 1e5
+ERROR_DISTRIBUTION_FLAG = False
 
 psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
 
@@ -51,7 +59,7 @@ psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
 optim_param = dict()
 optim_param['learning_rate'] = 0.05
 optim_param['max_iter'] = 1500
-optim_param['lambda_L1'] = 100
+optim_param['lambda_L1'] = 200
 optim_param['lambda_TV'] = 0
 optim_param['lambda_I'] = 5
 
@@ -62,18 +70,82 @@ gamma_acc_total = np.zeros((len(object_file_list),num_of_trials))
 s_acc_total = np.zeros((len(object_file_list),num_of_trials))
 
 # for orientation error vs. gt theta/phi plot
-theta_bin = np.zeros((9,1))
-theta_cnt = np.zeros((9,1))
-theta = np.linspace(np.pi/2/18,np.pi/2-np.pi/2/18,num=9,endpoint=True)
-phi_bin = np.zeros((18,1))
-phi_cnt = np.zeros((18,1))
-phi = np.linspace(-np.pi+np.pi/18,np.pi-np.pi/18,num=18,endpoint=True)
+theta_bin = np.zeros((18,1))
+theta_cnt = np.zeros((18,1))
+# theta = np.linspace(np.pi/2/18,np.pi/2-np.pi/2/18,num=9,endpoint=True)
+phi_bin = np.zeros((36,1))
+phi_cnt = np.zeros((36,1))
+# phi = np.linspace(-np.pi+np.pi/18,np.pi-np.pi/18,num=18,endpoint=True)
+
+theta_dict = {"0": np.array([]),
+              "1": np.array([]),
+              "2": np.array([]),
+              "3": np.array([]),
+              "4": np.array([]),
+              "5": np.array([]),
+              "6": np.array([]),
+              "7": np.array([]),
+              "8": np.array([]),
+              "9": np.array([]),
+              "10": np.array([]),
+              "11": np.array([]),
+              "12": np.array([]),
+              "13": np.array([]),
+              "14": np.array([]),
+              "15": np.array([]),
+              "16": np.array([]),
+              "17": np.array([]),}
+
+phi_dict = {"0": np.array([]),
+              "1": np.array([]),
+              "2": np.array([]),
+              "3": np.array([]),
+              "4": np.array([]),
+              "5": np.array([]),
+              "6": np.array([]),
+              "7": np.array([]),
+              "8": np.array([]),
+              "9": np.array([]),
+              "10": np.array([]),
+              "11": np.array([]),
+              "12": np.array([]),
+              "13": np.array([]),
+              "14": np.array([]),
+              "15": np.array([]),
+              "16": np.array([]),
+              "17": np.array([]),
+              "18": np.array([]),
+              "19": np.array([]),
+              "20": np.array([]),
+              "21": np.array([]),
+              "22": np.array([]),
+              "23": np.array([]),
+              "24": np.array([]),
+              "25": np.array([]),
+              "26": np.array([]),
+              "27": np.array([]),
+              "28": np.array([]),
+              "29": np.array([]),
+              "30": np.array([]),
+              "31": np.array([]),
+              "32": np.array([]),
+              "33": np.array([]),
+              "34": np.array([]),
+              "35": np.array([]),}
 
 # for orientation error vs. z
 z_bin_orien = np.zeros((10,1))
 z_cnt_orien = np.zeros((10,1))
 z_bin_fp = np.zeros((10,1))
 z_bin_fn = np.zeros((10,1))
+
+# for vs. gamma
+gamma_error_1 = np.array([])
+gamma_error_half = np.array([])
+gamma_error_0 = np.array([])
+gamma_est_1 = np.array([])
+gamma_est_half = np.array([])
+gamma_est_0 = np.array([])
 
 for idx_obj in range (len(object_file_list)):
     object_gt = loadmat(os.path.join('performance test objects new', object_file_list[idx_obj]+'.mat'))['object']*factor
@@ -85,7 +157,7 @@ for idx_obj in range (len(object_file_list)):
     image_raw = model_cpu.forward(object_gt)
     s_gt, m1_gt, z_gt, x_gt, y_gt = convert.m2_to_m1(object_gt,Bstruct,factor/10)
     total_voxel_num = object_gt.shape[1]*object_gt.shape[2]*object_gt.shape[3]
-
+    
     # convert to angle representation
     theta_gt = np.degrees(np.arccos(m1_gt[:,2]))
     phi_gt = np.degrees(np.arctan2(m1_gt[:,1],m1_gt[:,0]))
@@ -107,19 +179,32 @@ for idx_obj in range (len(object_file_list)):
 
         if object_file_list[idx_obj] in NO_ORIEN_GROUP:  
             orien_acc_total[idx_obj,trial] = np.nan
+            gamma_error_0 = np.append(gamma_error_0,acc_gamma)
+            gamma_est_0 = np.append(gamma_est_0,acc_gamma)
         else:
+            if object_file_list[idx_obj] in GAMMA_1_GROUP:
+                gamma_error_1 = np.append(gamma_error_1,acc_gamma)
+                gamma_est_1 = np.append(gamma_est_1,acc_gamma)
+            elif object_file_list[idx_obj] in GAMMA_HALF_GROUP:
+                gamma_error_half = np.append(gamma_error_half,acc_gamma)
+                gamma_est_half = np.append(gamma_est_half,acc_gamma)
+                print(object_file_list[idx_obj])
+                print(np.mean(acc_gamma))
             for i in range (acc_orientation.shape[0]):
-                theta_idx = (acc_gt_theta[i]/10).astype('int64')
-                if theta_idx == 9:
-                    theta_idx = 8
+                theta_idx = (acc_gt_theta[i]/5).astype('int64')
+                if theta_idx == 18:
+                    theta_idx = 17
                 theta_bin[theta_idx] += acc_orientation[i]
                 theta_cnt[theta_idx] += 1
+                theta_dict[str(theta_idx)] = np.append(theta_dict[str(theta_idx)],acc_orientation[i])
+
                 if np.isnan(acc_gt_phi[i]) == False:
-                    phi_idx = ((acc_gt_phi[i]+180)/20).astype('int64')
-                    if phi_idx == 18:
-                        phi_idx = 17
+                    phi_idx = ((acc_gt_phi[i]+180)/10).astype('int64')
+                    if phi_idx == 36:
+                        phi_idx = 35
                     phi_bin[phi_idx] += acc_orientation[i]
                     phi_cnt[phi_idx] += 1
+                    phi_dict[str(phi_idx)] = np.append(phi_dict[str(phi_idx)],acc_orientation[i])
                 z_idx = z_gt[i]
                 z_bin_orien[z_idx] += acc_orientation[i]
                 z_cnt_orien[z_idx] += 1
@@ -134,132 +219,132 @@ for idx_obj in range (len(object_file_list)):
             z_idx = fn_z[i]
             z_bin_fn[int(z_idx)] += 1
 
-        if ERROR_DISTRIBUTION_FLAG:
+        # if ERROR_DISTRIBUTION_FLAG:
 
-            theta_norm = plt.Normalize(0,90)
-            phi_norm = plt.Normalize(-180,180)
-            acc_norm = plt.Normalize(0,90)
+        #     theta_norm = plt.Normalize(0,90)
+        #     phi_norm = plt.Normalize(-180,180)
+        #     acc_norm = plt.Normalize(0,90)
 
-            for z in range (10):
+        #     for z in range (10):
 
-                idx_temp = np.where(np.equal(z_gt,z))
-                x_temp = x_gt[idx_temp]
-                y_temp = y_gt[idx_temp]
-                theta_color_temp = mpl.cm.cool(theta_norm(theta_gt[idx_temp[0]]))
-                phi_color_temp = mpl.cm.rainbow(phi_norm(phi_gt[idx_temp[0]]))
+        #         idx_temp = np.where(np.equal(z_gt,z))
+        #         x_temp = x_gt[idx_temp]
+        #         y_temp = y_gt[idx_temp]
+        #         theta_color_temp = mpl.cm.cool(theta_norm(theta_gt[idx_temp[0]]))
+        #         phi_color_temp = mpl.cm.rainbow(phi_norm(phi_gt[idx_temp[0]]))
 
-                fig_temp = plt.figure()
-                ax11 = fig_temp.add_subplot(221)
-                ax11.scatter(x_temp,y_temp,c=theta_color_temp,marker='s',s=5)
-                plt.title('theta gt at z = ' + str(z))
-                plt.xlim(0,60)
-                plt.ylim(0,60)
-                ax11.set_aspect('equal', adjustable='box')
-                fig_temp.colorbar(plt.cm.ScalarMappable(norm=theta_norm, cmap='cool'), ax=ax11)
+        #         fig_temp = plt.figure()
+        #         ax11 = fig_temp.add_subplot(221)
+        #         ax11.scatter(x_temp,y_temp,c=theta_color_temp,marker='s',s=5)
+        #         plt.title('theta gt at z = ' + str(z))
+        #         plt.xlim(0,60)
+        #         plt.ylim(0,60)
+        #         ax11.set_aspect('equal', adjustable='box')
+        #         fig_temp.colorbar(plt.cm.ScalarMappable(norm=theta_norm, cmap='cool'), ax=ax11)
 
-                ax12 = fig_temp.add_subplot(222)
-                ax12.scatter(x_temp,y_temp,c=phi_color_temp,marker='s',alpha=1,s=5)
-                plt.title('phi gt at z = ' + str(z))
-                plt.xlim(0,60)
-                plt.ylim(0,60)
-                ax12.set_aspect('equal', adjustable='box')
-                fig_temp.colorbar(plt.cm.ScalarMappable(norm=phi_norm, cmap='rainbow'), ax=ax12)
+        #         ax12 = fig_temp.add_subplot(222)
+        #         ax12.scatter(x_temp,y_temp,c=phi_color_temp,marker='s',alpha=1,s=5)
+        #         plt.title('phi gt at z = ' + str(z))
+        #         plt.xlim(0,60)
+        #         plt.ylim(0,60)
+        #         ax12.set_aspect('equal', adjustable='box')
+        #         fig_temp.colorbar(plt.cm.ScalarMappable(norm=phi_norm, cmap='rainbow'), ax=ax12)
 
-                idx_temp = np.where(np.equal(z_est,z))
-                x_temp = x_est[idx_temp]
-                y_temp = y_est[idx_temp]
-                theta_color_temp = mpl.cm.cool(theta_norm(theta_est[idx_temp[0]]))
-                phi_color_temp = mpl.cm.rainbow(phi_norm(phi_est[idx_temp[0]]))
+        #         idx_temp = np.where(np.equal(z_est,z))
+        #         x_temp = x_est[idx_temp]
+        #         y_temp = y_est[idx_temp]
+        #         theta_color_temp = mpl.cm.cool(theta_norm(theta_est[idx_temp[0]]))
+        #         phi_color_temp = mpl.cm.rainbow(phi_norm(phi_est[idx_temp[0]]))
 
-                ax13 = fig_temp.add_subplot(223)
-                ax13.scatter(x_temp,y_temp,c=theta_color_temp,marker='s',alpha=1,s=5)
-                plt.title('theta est at z = ' + str(z))
-                plt.xlim(0,60)
-                plt.ylim(0,60)
-                ax13.set_aspect('equal', adjustable='box')
-                fig_temp.colorbar(plt.cm.ScalarMappable(norm=theta_norm, cmap='cool'), ax=ax13)
+        #         ax13 = fig_temp.add_subplot(223)
+        #         ax13.scatter(x_temp,y_temp,c=theta_color_temp,marker='s',alpha=1,s=5)
+        #         plt.title('theta est at z = ' + str(z))
+        #         plt.xlim(0,60)
+        #         plt.ylim(0,60)
+        #         ax13.set_aspect('equal', adjustable='box')
+        #         fig_temp.colorbar(plt.cm.ScalarMappable(norm=theta_norm, cmap='cool'), ax=ax13)
 
-                ax14 = fig_temp.add_subplot(224)
-                ax14.scatter(x_temp,y_temp,c=phi_color_temp,marker='s',alpha=1,s=5)
-                plt.title('phi est at z = ' + str(z))
-                plt.xlim(0,60)
-                plt.ylim(0,60)
-                ax14.set_aspect('equal', adjustable='box')
-                fig_temp.colorbar(plt.cm.ScalarMappable(norm=phi_norm, cmap='rainbow'), ax=ax14)
+        #         ax14 = fig_temp.add_subplot(224)
+        #         ax14.scatter(x_temp,y_temp,c=phi_color_temp,marker='s',alpha=1,s=5)
+        #         plt.title('phi est at z = ' + str(z))
+        #         plt.xlim(0,60)
+        #         plt.ylim(0,60)
+        #         ax14.set_aspect('equal', adjustable='box')
+        #         fig_temp.colorbar(plt.cm.ScalarMappable(norm=phi_norm, cmap='rainbow'), ax=ax14)
 
-                mng = plt.get_current_fig_manager()
-                mng.full_screen_toggle()
-                plt.savefig('orientation' + "/file%02d.png" % z)
-                plt.close(fig_temp)
+        #         mng = plt.get_current_fig_manager()
+        #         mng.full_screen_toggle()
+        #         plt.savefig('orientation' + "/file%02d.png" % z)
+        #         plt.close(fig_temp)
 
-                idx_temp_2 = np.where(np.equal(acc_z,z))
-                acc_color_temp = mpl.cm.hot(acc_norm(acc_orientation[idx_temp_2[0]]))
+        #         idx_temp_2 = np.where(np.equal(acc_z,z))
+        #         acc_color_temp = mpl.cm.hot(acc_norm(acc_orientation[idx_temp_2[0]]))
 
-                fig_temp = plt.figure()
-                ax = fig_temp.add_subplot(111)
-                ax.scatter(acc_x[idx_temp_2],acc_y[idx_temp_2],c=acc_color_temp,marker='s',alpha=1,s=50)
-                plt.title('orientation accuracy at z = ' + str(z))
-                plt.xlim(0,60)
-                plt.ylim(0,60)
-                ax14.set_aspect('equal', adjustable='box')
-                fig_temp.colorbar(plt.cm.ScalarMappable(norm=acc_norm, cmap='hot'), ax=ax)
+        #         fig_temp = plt.figure()
+        #         ax = fig_temp.add_subplot(111)
+        #         ax.scatter(acc_x[idx_temp_2],acc_y[idx_temp_2],c=acc_color_temp,marker='s',alpha=1,s=50)
+        #         plt.title('orientation accuracy at z = ' + str(z))
+        #         plt.xlim(0,60)
+        #         plt.ylim(0,60)
+        #         ax14.set_aspect('equal', adjustable='box')
+        #         fig_temp.colorbar(plt.cm.ScalarMappable(norm=acc_norm, cmap='hot'), ax=ax)
 
-                mng = plt.get_current_fig_manager()
-                mng.full_screen_toggle()
-                plt.savefig('orientation accuracy' + "/file%02d.png" % z)
-                plt.close(fig_temp)
+        #         mng = plt.get_current_fig_manager()
+        #         mng.full_screen_toggle()
+        #         plt.savefig('orientation accuracy' + "/file%02d.png" % z)
+        #         plt.close(fig_temp)
 
-            gamma_norm = plt.Normalize(0,1)
-            gamma_gt = m1_gt[:,3]
-            gamma_est = m1_est[:,3]
+        #     gamma_norm = plt.Normalize(0,1)
+        #     gamma_gt = m1_gt[:,3]
+        #     gamma_est = m1_est[:,3]
 
-            for z in range (10):
+        #     for z in range (10):
 
-                fig_gamma = plt.figure()
+        #         fig_gamma = plt.figure()
 
-                idx_temp = np.where(np.equal(z_gt,z))
-                x_temp = x_gt[idx_temp]
-                y_temp = y_gt[idx_temp]
-                gamma_color_temp = mpl.cm.coolwarm(gamma_norm(gamma_gt[idx_temp[0]]))
+        #         idx_temp = np.where(np.equal(z_gt,z))
+        #         x_temp = x_gt[idx_temp]
+        #         y_temp = y_gt[idx_temp]
+        #         gamma_color_temp = mpl.cm.coolwarm(gamma_norm(gamma_gt[idx_temp[0]]))
 
-                ax_g1 = fig_gamma.add_subplot(131) 
-                ax_g1.scatter(x_temp,y_temp,c=gamma_color_temp,marker='s',s=5)
-                plt.title('gamma gt at z = ' + str(z))
-                plt.xlim(0,60)
-                plt.ylim(0,60)
-                ax_g1.set_aspect('equal', adjustable='box')
-                fig_gamma.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='coolwarm'), ax=ax_g1)
+        #         ax_g1 = fig_gamma.add_subplot(131) 
+        #         ax_g1.scatter(x_temp,y_temp,c=gamma_color_temp,marker='s',s=5)
+        #         plt.title('gamma gt at z = ' + str(z))
+        #         plt.xlim(0,60)
+        #         plt.ylim(0,60)
+        #         ax_g1.set_aspect('equal', adjustable='box')
+        #         fig_gamma.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='coolwarm'), ax=ax_g1)
 
-                idx_temp = np.where(np.equal(z_est,z))
-                x_temp = x_est[idx_temp]
-                y_temp = y_est[idx_temp]
-                gamma_color_temp = mpl.cm.coolwarm(gamma_norm(gamma_est[idx_temp[0]]))
+        #         idx_temp = np.where(np.equal(z_est,z))
+        #         x_temp = x_est[idx_temp]
+        #         y_temp = y_est[idx_temp]
+        #         gamma_color_temp = mpl.cm.coolwarm(gamma_norm(gamma_est[idx_temp[0]]))
 
-                ax_g2 = fig_gamma.add_subplot(132) 
-                ax_g2.scatter(x_temp,y_temp,c=gamma_color_temp,marker='s',s=5)
-                plt.title('gamma est at z = ' + str(z))
-                plt.xlim(0,60)
-                plt.ylim(0,60)
-                ax_g2.set_aspect('equal', adjustable='box')
-                fig_gamma.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='coolwarm'), ax=ax_g2)
+        #         ax_g2 = fig_gamma.add_subplot(132) 
+        #         ax_g2.scatter(x_temp,y_temp,c=gamma_color_temp,marker='s',s=5)
+        #         plt.title('gamma est at z = ' + str(z))
+        #         plt.xlim(0,60)
+        #         plt.ylim(0,60)
+        #         ax_g2.set_aspect('equal', adjustable='box')
+        #         fig_gamma.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='coolwarm'), ax=ax_g2)
 
-                idx_temp = np.where(np.equal(acc_z,z))
-                x_temp = acc_x[idx_temp]
-                y_temp = acc_y[idx_temp]
-                gamma_color_temp = mpl.cm.inferno(gamma_norm(acc_gamma[idx_temp[0]]))
+        #         idx_temp = np.where(np.equal(acc_z,z))
+        #         x_temp = acc_x[idx_temp]
+        #         y_temp = acc_y[idx_temp]
+        #         gamma_color_temp = mpl.cm.inferno(gamma_norm(acc_gamma[idx_temp[0]]))
 
-                ax_g3 = fig_gamma.add_subplot(133) 
-                ax_g3.scatter(x_temp,y_temp,c=gamma_color_temp,marker='s',s=5)
-                plt.title('gamma error at z = ' + str(z))
-                plt.xlim(0,60)
-                plt.ylim(0,60)
-                ax_g3.set_aspect('equal', adjustable='box')
-                fig_gamma.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='inferno'), ax=ax_g3)
+        #         ax_g3 = fig_gamma.add_subplot(133) 
+        #         ax_g3.scatter(x_temp,y_temp,c=gamma_color_temp,marker='s',s=5)
+        #         plt.title('gamma error at z = ' + str(z))
+        #         plt.xlim(0,60)
+        #         plt.ylim(0,60)
+        #         ax_g3.set_aspect('equal', adjustable='box')
+        #         fig_gamma.colorbar(plt.cm.ScalarMappable(norm=gamma_norm, cmap='inferno'), ax=ax_g3)
 
-                mng = plt.get_current_fig_manager()
-                mng.full_screen_toggle()
-                plt.savefig('gamma' + "/file%02d.png" % z)
-                plt.close(fig_gamma)
+        #         mng = plt.get_current_fig_manager()
+        #         mng.full_screen_toggle()
+        #         plt.savefig('gamma' + "/file%02d.png" % z)
+        #         plt.close(fig_gamma)
 
         fp_total[idx_obj,trial] = np.sum(fp_z)/total_voxel_num
         fn_total[idx_obj,trial] = np.sum(fn_z)/total_voxel_num
@@ -298,4 +383,16 @@ ax_zhist3.set_title('z vs. fn rate')
 ax_zhist3.set_xlabel('z layer')
 ax_zhist3.set_ylabel('average fn rate')
 
-plt.show()
+for key in theta_dict:
+     pd.DataFrame(theta_dict[key]).to_csv('theta ' + key + '.csv')
+for key in phi_dict:
+     pd.DataFrame(phi_dict[key]).to_csv('phi ' + key + '.csv')
+
+pd.DataFrame(gamma_est_0).to_csv('gamma 0 est.csv')
+pd.DataFrame(gamma_est_half).to_csv('gamma half est.csv')
+pd.DataFrame(gamma_est_1).to_csv('gamma 1 est.csv')
+
+# pd.DataFrame(z_bin_fp.squeeze()/z_voxel_cnt/2).to_csv(object_group_name + ' fp summary.csv')
+# pd.DataFrame(z_bin_fn.squeeze()/z_voxel_cnt/2).to_csv(object_group_name + ' fn summary.csv')
+
+# plt.show()
