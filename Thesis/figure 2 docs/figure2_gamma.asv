@@ -1,0 +1,8 @@
+gamma_bin = [0:.05:1];
+gamma_0 = readmatrix('gamma 0 est.csv');
+gamma_0 = gamma_0(2:end,2);
+gamma_1 = readmatrix('gamma 0 est.csv');
+gamma_1= gamma_0(2:end,2);
+gamma_h = readmatrix('gamma 0 est.csv');
+gamma_0 = gamma_0(2:end,2);
+histogram(gamma_0,gamma_bin)
