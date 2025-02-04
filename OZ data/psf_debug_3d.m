@@ -1,0 +1,64 @@
+locData = readtable("2000_5_z1_locData_final.csv");
+frameNum = 25;
+fSaveDir = 'C:\Users\cheng\OneDrive - Washington University in St. Louis\Desktop\Lew Lab\Robust-6D-video-rate-microscopy\objects\';
+fSaveName = ['sim_space_f' num2str(frameNum)];
+xy_dim = 101;
+z_dim = 45;
+
+idxOfFrame = (locData.Frame == frameNum) & (round(locData.signal) > 1500) & ...
+    (round(locData.x_idx) > 0) & (round(locData.x_idx) <= 101) & ...
+    (round(locData.y_idx) > 0) & (round(locData.y_idx) <= 101) & ...
+    (round(locData.z_idx) > 0) & (round(locData.z_idx) <= 45);
+signal = locData.signal(idxOfFrame);
+x = locData.x_idx(idxOfFrame);
+y = locData.y_idx(idxOfFrame);
+z = locData.z_idx(idxOfFrame);
+mu_x = locData.mux(idxOfFrame);
+mu_y = locData.muy(idxOfFrame);
+mu_z = locData.muz(idxOfFrame);
+gamma = locData.gamma(idxOfFrame);
+dipoleNum = size(signal,1);
+
+object = zeros(6,z_dim,xy_dim,xy_dim);
+
+for d = 1:dipoleNum
+    z_idx = round(z(d));
+    x_idx = round(x(d));
+    y_idx = round(y(d));
+
+    object(1,z_idx,x_idx,y_idx) = signal(d)*(gamma(d)*mu_x(d)^2+(1-gamma(d))/3);
+    object(2,z_idx,x_idx,y_idx) = signal(d)*(gamma(d)*mu_y(d)^2+(1-gamma(d))/3);
+    object(3,z_idx,x_idx,y_idx) = signal(d)*(gamma(d)*mu_z(d)^2+(1-gamma(d))/3);
+    object(4,z_idx,x_idx,y_idx) = signal(d)*(gamma(d)*mu_x(d)*mu_y(d));
+    object(5,z_idx,x_idx,y_idx) = signal(d)*(gamma(d)*mu_x(d)*mu_z(d));
+    object(6,z_idx,x_idx,y_idx) = signal(d)*(gamma(d)*mu_z(d)*mu_y(d));
+end
+
+save([fSaveDir fSaveName '.mat'],'object');
+
+%% visualize the raw data
+
+rawData = load("2000_5_z1_rawData.mat").rawData;
+offset = load(["2000_5_z1_offset.mat"]).offset;
+bg = load(["2000_5_z1_bg.mat"],'-mat').b;
+
+dataTmp = squeeze(double(rawData(:,:,frameNum))) - offset;
+% camera brightness correction
+dataTmp(:,1:end/2) = dataTmp(:,1:end/2)*.49;
+dataTmp(:,end/2+1:end) = dataTmp(:,end/2+1:end)*.47;
+
+image = zeros(8,101,101);
+
+for j = 1:8 
+    image(j,:,:) = dataTmp(:,size(dataTmp,1)*(j-1)+1:size(dataTmp,1)*j)';
+end
+    
+save(['C:\Users\cheng\OneDrive - Washington University in St. Louis\Desktop\Lew Lab\Robust-6D-video-rate-microscopy\images\frame' num2str(frameNum) '.mat'], ...
+    'image')
+
+figure;
+imagesc(img)
+title(['frame ' num2str(frameNum)])
+colormap gray
+colorbar
+axis image

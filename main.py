@@ -14,11 +14,13 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Using ' + device)
 
 ### document setup ###
-psf_file = 'MVR_zf500_pixelsz_z23' # #channel x orientation x Z x X x Y
-object_file = 'simulated lipid membrane' # orientation x Z x X x Y
+psf_dir = 'psf'
+psf_file = 'MVR_zf800_3pixelsz_z10' # #channel x orientation x Z x X x Y
+object_dir = 'performance test objects new'
+object_file = 'tilted ring gamma 0.5' # orientation x Z x X x Y
 initial_file = '' # orientation x Z x X x Y
 image_file = '' # #channel x X x Y
-factor = 1
+factor = 10000
 FLAG_NOISE = True
 
 ### hyperparams setup ###
@@ -37,13 +39,38 @@ optim_param_iso['lambda_TV'] = 0
 optim_param_iso['lambda_I'] = 5
 
 ### PSF ###
-psf = loadmat(os.path.join('psf', psf_file+'.mat'))['dsf']
+psf = loadmat(os.path.join(psf_dir, psf_file+'.mat'))['dsf_raMVR']
+
+
+# np.transpose(psf,(0,1,2,4,3))
+# mxx = psf[:,1,...]
+# myy = psf[:,0,...]
+# mxz = psf[:,5,...]
+# myz = psf[:,4,...]
+# psf[:,0,...] = mxx
+# psf[:,1,...] = myy
+# psf[:,4,...] = mxz
+# psf[:,5,...] = myz
 
 ### object domain ###
-object = loadmat(os.path.join('performance test objects new', object_file+'.mat'))['object']*factor
+object = loadmat(os.path.join(object_dir, object_file+'.mat'))['object']*factor
 object_size = (6,psf.shape[2],psf.shape[3],psf.shape[4])
 object_iso_size = (1,psf.shape[2],psf.shape[3],psf.shape[4])
 # plot.video_obj(object,'GT of ' + object_file,'object GT')
+
+
+
+'''comment out'''
+# object = np.transpose(object,(0,1,3,2))
+# mxx = object[1,...]
+# myy = object[0,...]
+# mxz = object[5,...]
+# myz = object[4,...]
+# object[0,...] = mxx
+# object[1,...] = myy
+# object[4,...] = mxz
+# object[5,...] = myz
+'''comment out'''
 
 ### model setup ###
 model_cpu = cpu.smolm(psf, object_size)
@@ -57,7 +84,7 @@ else:
 if FLAG_NOISE and image_file == '':
     img = np.random.poisson(img)
 
-plot.plot_img_tight(img, 'Image of ' + object_file)
+plot.plot_img_tighter(img, 'Image of ' + object_file)
 
 # ### initialization ###
 if initial_file == '': 
@@ -70,12 +97,12 @@ else:
     initial = loadmat(os.path.join('performance test initials', initial_file +'.mat'))['initial']*factor
     # plot.video_obj(initial,'Est initial of ' + object_file, 'initial Est')
 
-# ### deconvolution ###
-# obj_est, loss = gpu.estimate(psf, initial, 'dipole', img, optim_param['lr'], 
-#                              optim_param['max_iter'], optim_param['lambda_L1'], 
-#                              optim_param['lambda_TV'], optim_param['lambda_I'], device)
+### deconvolution ###
+obj_est, loss = gpu.estimate(psf, initial, 'dipole', img, optim_param['lr'], 
+                             optim_param['max_iter'], optim_param['lambda_L1'], 
+                             optim_param['lambda_TV'], optim_param['lambda_I'], device)
 
-# ### check the result ###
-# img_est = model_cpu.forward(obj_est)
-# plot.plot_img_tight(img_est, 'Reconstructed image of ' + object_file)
-# plot.video_obj(obj_est,'Est ' + object_file,'object Est')
+### check the result ###
+img_est = model_cpu.forward(obj_est)
+plot.plot_img_tight(img_est, 'Reconstructed image of ' + object_file)
+plot.video_obj(obj_est,'Est ' + object_file,'object Est')

@@ -2,12 +2,17 @@ import numpy as np
 
 class smolm():
 
+<<<<<<< HEAD
     '''A class that characterize the optical system. '''
+=======
+    '''A class that characterizes the optical system. '''
+>>>>>>> main
     
     def __init__(self, psf, obj_size):
         super(smolm, self).__init__()
 
         self.channel = psf.shape[0]
+        print(self.channel)
 
         # storing the size of the psf
         self.psf_size = dict()
@@ -27,11 +32,13 @@ class smolm():
         if self.psf_size['orientation'] != self.obj_size['orientation']:
             raise Exception('The number of orientation moments does not match')
         if self.psf_size['depth'] != self.obj_size['depth']:
-            raise Exception('The number of z stack does not match')
+            raise Exception('The number of z stacks does not match')
         
         # padding 0 - assuming the psf size is smaller than the object
         w_diff = self.obj_size['width']-self.psf_size['width']
         h_diff = self.obj_size['height']-self.psf_size['height']
+
+        print(w_diff); print(h_diff)
 
         w_left_pad = np.int16(np.floor(w_diff/2))
         w_right_pad = np.int16(np.ceil(w_diff/2))
@@ -44,14 +51,20 @@ class smolm():
         # store the psf and fft of the psf
         self.psf = psf_padded
         self.psf_fft = np.fft.rfft2(np.fft.ifftshift(self.psf, (3,4)))
+        # self.psf_fft = np.fft.rfft2(self.psf)
 
     def forward(self, obj):
         
         # simulate the image
         shape_img = (self.obj_size['width'],self.obj_size['height'])
         obj_fft = np.fft.rfft2(np.fft.ifftshift(obj, (2,3)))
+        # obj_fft = np.fft.rfft2(obj)
         img_fft = self.psf_fft * obj_fft
         img = np.fft.ifftshift(np.fft.irfft2(img_fft,s=shape_img), axes=(3,4))
+<<<<<<< HEAD
+=======
+        # img = np.fft.irfft2(img_fft,s=shape_img)
+>>>>>>> main
         img = np.sum(img, axis=1)
         img = np.sum(img, axis=1)
 

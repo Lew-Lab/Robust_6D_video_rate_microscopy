@@ -74,6 +74,7 @@ def create_sphere_fiber(obj_w, obj_h, obj_d, radius, sigma, gamma, orientation=T
     return np.transpose(sphere, (0,3,1,2))
 
 
+<<<<<<< HEAD
 if __name__ == "__main__":
 
     # gamma = [0,0.5,1]
@@ -87,6 +88,25 @@ if __name__ == "__main__":
     #     sphere = create_sphere(61,61,61,radius,0.5,g)
     #     flat_ring = np.zeros((6,10,61,61))
     #     flat_ring[:,5,...] = sphere[:,30,...]
+=======
+# this checks to see if the code is being run as a script or being imported as a module.
+# if run directly, the stuff under this line executes. if not, stuff above I guess?
+if __name__ == "__main__":
+
+    gamma = [0,0.5,1]
+    smax = 1 # normalized
+    obj_w_l = 121;
+    obj_h = 10;
+
+    # ''' Flat ring '''
+
+    # radius = 20 
+
+    # for g in gamma: 
+    #     sphere = create_sphere(obj_w_l,obj_w_l,obj_w_l,radius,0.5,g)
+    #     flat_ring = np.zeros((6,obj_h,obj_w_l,obj_w_l))
+    #     flat_ring[:,np.ceil(obj_h/2),...] = sphere[:,30,...]
+>>>>>>> main
     #     for m in range (6):
     #         flat_ring[m,...] = ndimage.gaussian_filter(flat_ring[m,...], sigma=0.7)
     #     flat_ring = flat_ring*smax/np.max(np.sum(flat_ring[:3,...],axis=0))
@@ -94,6 +114,7 @@ if __name__ == "__main__":
 
     # ''' Tilted ring '''
 
+<<<<<<< HEAD
     # radius = 10
     # center = np.array([9/2,61/2,61/2])
 
@@ -104,6 +125,18 @@ if __name__ == "__main__":
     #     tilted_ring = np.zeros((6,10,61,61))
     #     for layer in range (8): 
     #         tilted_ring[:,layer+1,2+layer*7:2+layer*7+7,:] = flat_ring[:,5,2+layer*7:2+layer*7+7,:]
+=======
+    # radius = 20
+    # center = np.array([9/2,obj_w_l/2,obj_w_l/2])
+
+    # for g in gamma: 
+    #     sphere = create_sphere(obj_w_l,obj_w_l,obj_w_l,radius,0.5,g)
+    #     flat_ring = np.zeros((6,obj_h,obj_w_l,obj_w_l))
+    #     flat_ring[:,np.ceil(obj_h/2),...] = sphere[:,30,...]
+    #     tilted_ring = np.zeros((6,obj_h,obj_w_l,obj_w_l))
+    #     for layer in range (8): 
+    #         tilted_ring[:,layer+1,2+layer*7:2+layer*7+7,:] = flat_ring[:,np.ceil(obj_h/2),2+layer*7:2+layer*7+7,:]
+>>>>>>> main
     #     non_zero = np.argwhere(np.sum(tilted_ring[:3,...],axis=0)>np.max(np.sum(tilted_ring[:3,...],axis=0))/7)
     #     for idx in non_zero:
     #         mu_x = center[1]-idx[1]
@@ -128,6 +161,7 @@ if __name__ == "__main__":
 
     # ''' Flat surface '''
 
+<<<<<<< HEAD
     # side = 20
     # for g in gamma:
     #     flat_surface = np.zeros((6,10,61,61))
@@ -135,17 +169,52 @@ if __name__ == "__main__":
     #     flat_surface[2,...] = ndimage.gaussian_filter(flat_surface[2,...], sigma=0.7)
     #     flat_surface = flat_surface*smax/np.max(np.sum(flat_surface[:3,...],axis=0))
     #     savemat('flat surface gamma ' + str(g) + '.mat', {'object':flat_surface})
+=======
+    side = 40
+    mu_x = np.zeros((obj_h,obj_w_l,obj_w_l))
+    mu_y = np.zeros((obj_h,obj_w_l,obj_w_l))
+    mu_z = np.zeros((obj_h,obj_w_l,obj_w_l))
+
+    # all dipoles on the flat surface are oriented orthogonally to it (i.e.) mu = [0, 0, 1]. Therefore, set all dipoles on the flat surface to have a first moment of [0, 0, 1].
+    mu_z[np.ceil(obj_h/2),int(np.floor(obj_w_l/2)-side/2):int(np.floor(obj_w_l/2)+side/2),int(np.floor(obj_w_l/2)-side/2):int(np.floor(obj_w_l/2)+side/2)] = 1
+
+    # there are only dipoles on the surface (i.e.) s_env = 0 when object space does not contain the flat surface.
+    s_env = np.zeros((obj_h,obj_w_l,obj_w_l))
+    s_env[np.ceil(obj_h/2),int(np.floor(obj_w_l/2)-side/2):int(np.floor(obj_w_l/2)+side/2),int(np.floor(obj_w_l/2)-side/2):int(np.floor(obj_w_l/2)+side/2)] = 1
+    
+    for g in gamma:
+        flat_surface = np.zeros((6,obj_h,obj_w_l,obj_w_l))
+        flat_surface[0,:,:,:] = g*mu_x**2 + (1-g)/3
+        flat_surface[1,:,:,:] = g*mu_y**2 + (1-g)/3
+        flat_surface[2,:,:,:] = g*mu_z**2 + (1-g)/3
+        flat_surface[3,:,:,:] = g*mu_x*mu_y
+        flat_surface[4,:,:,:] = g*mu_x*mu_z
+        flat_surface[5,:,:,:] = g*mu_z*mu_y
+        for m in range (6):
+            flat_surface[m,:,:,:] = s_env*flat_surface[m,:,:,:]
+            flat_surface[m,...] = ndimage.gaussian_filter(flat_surface[m,...], sigma=0.7)
+        flat_surface = flat_surface*smax/np.max(np.sum(flat_surface[:3,...],axis=0))
+        savemat('flat surface gamma ' + str(g) + '.mat', {'object':flat_surface})
+>>>>>>> main
 
     # ''' Tilted surface '''
 
     # side = 20
     # side_flat = np.sqrt(side**2-5**2)
     # for g in gamma:
+<<<<<<< HEAD
     #     flat_surface = np.zeros((6,10,61,61))
     #     flat_surface[2,5,int(30-side/2):int(30+side/2),int(30-side/2):int(30+side/2)] = 1
     #     tilted_surface = np.zeros((6,10,61,61))
     #     for layer in range (8): 
     #         tilted_surface[:,layer+1,2+layer*7:2+layer*7+7,:] = flat_surface[:,5,2+layer*7:2+layer*7+7,:]
+=======
+    #     flat_surface = np.zeros((6,obj_h,obj_w_l,obj_w_l))
+    #     flat_surface[2,np.ceil(obj_h/2),int(np.floor(obj_w_l/2)-side/2):int(np.floor(obj_w_l/2)+side/2),int(np.floor(obj_w_l/2)-side/2):int(np.floor(obj_w_l/2)+side/2)] = 1
+    #     tilted_surface = np.zeros((6,obj_h,obj_w_l,obj_w_l))
+    #     for layer in range (8): 
+    #         tilted_surface[:,layer+1,2+layer*7:2+layer*7+7,:] = flat_surface[:,np.ceil(obj_h/2),2+layer*7:2+layer*7+7,:]
+>>>>>>> main
     #     non_zero = np.argwhere(np.sum(tilted_surface[:3,...],axis=0)>np.max(np.sum(tilted_surface[:3,...],axis=0))/7)
     #     for idx in non_zero:
     #         z = 6
@@ -169,8 +238,13 @@ if __name__ == "__main__":
 
     # radius = 14
     # for g in gamma: 
+<<<<<<< HEAD
     #     sphere = create_sphere(61,61,61,radius,0.5,g)
     #     hemisphere = np.zeros((6,10,61,61))
+=======
+    #     sphere = create_sphere(obj_w_l,obj_w_l,obj_w_l,radius,0.5,g)
+    #     hemisphere = np.zeros((6,obj_h,obj_w_l,obj_w_l))
+>>>>>>> main
     #     hemisphere[:,2:8,...] = sphere[:,39:45,...]
     #     for m in range (6):
     #         hemisphere[m,...] = ndimage.gaussian_filter(hemisphere[m,...], sigma=0.7)
@@ -181,8 +255,13 @@ if __name__ == "__main__":
 
     # radius = 14
     # for g in gamma: 
+<<<<<<< HEAD
     #     sphere = create_sphere_fiber(61,61,61,radius,0.5,g)
     #     fiber = np.zeros((6,10,61,61))
+=======
+    #     sphere = create_sphere_fiber(obj_w_l,obj_w_l,obj_w_l,radius,0.5,g)
+    #     fiber = np.zeros((6,obj_h,obj_w_l,obj_w_l))
+>>>>>>> main
     #     fiber[:,2:8,30,:] = sphere[:,39:45,30,:]
     #     fiber[:,2:8,29,:] = sphere[:,39:45,30,:]
     #     fiber[:,2:8,31,:] = sphere[:,39:45,30,:]
@@ -196,6 +275,7 @@ if __name__ == "__main__":
     
     ''' Lipid membrane simulation '''
 
+<<<<<<< HEAD
     radius = 2000/2/66
     sphere, mu_x, mu_y, mu_z = create_sphere(101,101,101,radius,2,0)
     sphere = sphere[:,35:58,:,:]
@@ -214,3 +294,29 @@ if __name__ == "__main__":
     sphere[:,13:,...] = 0
     # plot.video_obj(sphere,'simulated lipid membrane','object GT')
     savemat('simulated lipid membrane.mat',{'object':sphere*3000})
+=======
+    # radius = 2000/2/66
+    # sphere, mu_x, mu_y, mu_z = create_sphere(obj_w_l,obj_w_l,obj_w_l,radius,2,0)
+    # sphere = sphere[:,35:58,:,:]
+    # mu_x = mu_x[35:58,...]
+    # mu_y = mu_y[35:58,...]
+    # mu_z = mu_z[35:58,...]
+    # membrane = np.zeros((6,23,obj_w_l,obj_w_l))
+    # for i in range (13):
+    #     gamma = i/12
+    #     membrane[0,i,...] = gamma*mu_x[i,...]**2 + (1-gamma)/3
+    #     membrane[1,i,...] = gamma*mu_y[i,...]**2 + (1-gamma)/3
+    #     membrane[2,i,...] = gamma*mu_z[i,...]**2 + (1-gamma)/3
+    #     membrane[3,i,...] = gamma*mu_x[i,...]*mu_y[i,...]
+    #     membrane[4,i,...] = gamma*mu_x[i,...]*mu_z[i,...]
+    #     membrane[5,i,...] = gamma*mu_y[i,...]*mu_z[i,...]
+    # sphere[:,13:,...] = 0
+    # # plot.video_obj(sphere,'simulated lipid membrane','object GT')
+    # savemat('simulated lipid membrane.mat',{'object':sphere*3000})
+
+    # ''' Line objects for convolution direction test '''
+    # line = np.zeros((6,1,obj_w_l,obj_w_l))
+    # line[1,:,40:60,30] = 1
+    # plot.video_obj(line,'line object for convolution direction test', 'object GT')
+    # savemat('line horizontal rec.mat',{'object':line})
+>>>>>>> main

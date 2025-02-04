@@ -1,14 +1,22 @@
 import os
 import numpy as np
+<<<<<<< HEAD
 import torch
+=======
+>>>>>>> main
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy import io
 import scipy
 from scipy import optimize
+<<<<<<< HEAD
 # from pyutils.autograd_minimize import minimize as torchminimize
 
 def m2_to_m1(object, Bstruct, brightness_threshold, device): 
+=======
+
+def m2_to_m1(object, Bstruct, brightness_threshold): 
+>>>>>>> main
 
     m_xx = object[0,:,:,:]
     m_yy = object[1,:,:,:]
@@ -33,7 +41,10 @@ def m2_to_m1(object, Bstruct, brightness_threshold, device):
 
     # retrieve second moments of voxels with localizations
     m2 = np.squeeze(m2[np.argwhere(s > brightness_threshold),:])
+<<<<<<< HEAD
     # print(len(m2))
+=======
+>>>>>>> main
 
     # Retrieve Bstruct and define b, B, sumNormList
     BsList = Bstruct['BsList'][0,0] # retrieves BsList from Bstruct
@@ -54,18 +65,29 @@ def m2_to_m1(object, Bstruct, brightness_threshold, device):
         # print(loc)
 
         # retrieve b, B, and sumNorm for the correct z-height
+<<<<<<< HEAD
         b = BsList[0, zSlice];
+=======
+        b = BsList[0, zSlice]
+>>>>>>> main
         B = BHaList[0, zSlice]
         sumNorm = sumNormList[0, zSlice][0,0]
 
         # estimate and store first moments
+<<<<<<< HEAD
         estM1 = secondM2SymmConeWeighted(b, B, sumNorm, secM/signal, signal, 1e-12, device)
 
+=======
+        estM1 = secondM2SymmConeWeighted(b, B, sumNorm, secM/signal, signal, 1e-12)
+        if estM1[2] < 0:
+            estM1[:3] = -estM1[:3]
+>>>>>>> main
         m1[loc,:] = estM1
 
     return s[np.argwhere(s > brightness_threshold)], m1, z, x, y
 
 
+<<<<<<< HEAD
 def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg, device):
     # define a least squares problem structure
 
@@ -84,6 +106,13 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg, device):
     bXX = torch.tensor(bXX); bYY = torch.tensor(bYY); bZZ = torch.tensor(bZZ);
     bXY = torch.tensor(bXY); bXZ = torch.tensor(bXZ); bYZ = torch.tensor(bYZ);
 
+=======
+def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg):
+    # define a least squares problem structure
+
+    bXX = b['XX'][0,0]; bYY = b['YY'][0,0]; bZZ = b['ZZ'][0,0]; bXY = b['XY'][0,0]; bXZ = b['XZ'][0,0]; bYZ = b['YZ'][0,0]
+
+>>>>>>> main
     Ix = secM[0] * bXX + secM[1] * bYY + secM[2] * bZZ + secM[3] * bXY + secM[4] * bXZ + secM[5] * bYZ
     Ix[Ix<0] = 0
 
@@ -93,6 +122,7 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg, device):
     # Compute Fisher Information Matrix
     FIM = calFIMSecondM(B, Ix, signal, backg)
 
+<<<<<<< HEAD
     # Compute eigenstuffs of M and retrieve largest eigenvalues
     eigvalue, eigvector = torch.linalg.eig(M)
     eigvector_real = torch.real(eigvector)
@@ -109,6 +139,27 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg, device):
     x0SVD[1] = torch.real(eigvector_real[1, idx_max_D])
     x0SVD[2] = torch.real(eigvector_real[2, idx_max_D])
     x0SVD[3] = 1.5 * torch.max(eigvalue_real[idx_max_D]) - .5
+=======
+    # construct the M matrix
+    M = np.array([[secM[0], secM[3], secM[4]],
+        [secM[3], secM[1], secM[5]],
+        [secM[4], secM[5], secM[2]]],dtype='float64')
+    eigvalue, eigvector = np.linalg.eig(M)
+    eigvector_real = np.real(eigvector)
+    eigvalue_real = np.real(eigvalue)
+
+    idx_max_D = np.argmax(eigvalue_real)
+
+    # initialization via SVD
+    x0SVD = np.zeros((4,1))
+
+    # Initial value based the largest eigen value
+    #------------------------------------------------------------
+    x0SVD[0] = np.real(eigvector_real[0, idx_max_D])
+    x0SVD[1] = np.real(eigvector_real[1, idx_max_D])
+    x0SVD[2] = np.real(eigvector_real[2, idx_max_D])
+    x0SVD[3] = 1.5 * np.max(eigvalue_real[idx_max_D]) - .5
+>>>>>>> main
 
     # upper and lower constraints for estimated first moments
     bound = [(-1, 1), (-1, 1), (-1, 1), (0, 1)]
@@ -117,12 +168,16 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg, device):
 
     # interior-point optimization
     M1estresults = optimize.minimize(objective_fun, x0SVD, bounds = bound, constraints = cons, args = (FIM, np.matrix(secM),))
+<<<<<<< HEAD
     # M1estresults = torchminimize(objective_fun, x0SVD.detach().numpy(), bounds = bound, constraints = cons, args = (FIM, np.matrix(secM),), torch_device=device)
+=======
+>>>>>>> main
     # print(M1estresults)
     estM1 = M1estresults['x']
     # print(estM1)
     # print(np.linalg.norm(estM1[0:2]))
 
+<<<<<<< HEAD
     # If mu_z is negative, flip the first moment vector.
     if estM1[2] < 0:
         estM1[:3] = -estM1[:3]
@@ -131,6 +186,12 @@ def secondM2SymmConeWeighted(b, B, sumNorm, secM, signal, backg, device):
 
 def calFIMSecondM(B, I, s, backg):
     FIM = torch.zeros((6, 6), dtype=torch.double)
+=======
+    return estM1
+
+def calFIMSecondM(B, I, s, backg):
+    FIM = np.zeros((6, 6))
+>>>>>>> main
 
     Baa = B['aa'][0,0]; Bbb = B['bb'][0,0]; Bcc = B['cc'][0,0]; Bdd = B['dd'][0,0]; Bee = B['ee'][0,0]; Bff = B['ff'][0,0]
     Bab = B['ab'][0,0]; Bac = B['ac'][0,0]; Bad = B['ad'][0,0]; Bae = B['ae'][0,0]; Baf = B['af'][0,0]
@@ -140,6 +201,7 @@ def calFIMSecondM(B, I, s, backg):
     Bef = B['ef'][0,0]
 
 
+<<<<<<< HEAD
     FIM[0, 0] = 0.5 * (s**2) * (torch.sum(torch.sum((Baa) / (I + backg))))
     FIM[1, 1] = 0.5 * (s**2) * (torch.sum(torch.sum((Bbb) / (I + backg))))
     FIM[2, 2] = 0.5 * (s**2) * (torch.sum(torch.sum((Bcc) / (I + backg))))
@@ -168,24 +230,63 @@ def calFIMSecondM(B, I, s, backg):
     FIM[4, 5] = (s**2) * (torch.sum(torch.sum((Bef) / (I + backg))))
 
     FIM = FIM + torch.transpose(FIM, 0, 1)
+=======
+    FIM[0, 0] = 0.5 * (s**2) * (sum(sum((Baa) / (I + backg))))
+    FIM[1, 1] = 0.5 * (s**2) * (sum(sum((Bbb) / (I + backg))))
+    FIM[2, 2] = 0.5 * (s**2) * (sum(sum((Bcc) / (I + backg))))
+    FIM[3, 3] = 0.5 * (s**2) * (sum(sum((Bdd) / (I + backg))))
+    FIM[4, 4] = 0.5 * (s**2) * (sum(sum((Bee) / (I + backg))))
+    FIM[5, 5] = 0.5 * (s**2) * (sum(sum((Bff) / (I + backg))))
+
+    FIM[0, 1] = (s**2) * (sum(sum((Bab) / (I + backg))))
+    FIM[0, 2] = (s**2) * (sum(sum((Bac) / (I + backg))))
+    FIM[0, 3] = (s**2) * (sum(sum((Bad) / (I + backg))))
+    FIM[0, 4] = (s**2) * (sum(sum((Bae) / (I + backg))))
+    FIM[0, 5] = (s**2) * (sum(sum((Baf) / (I + backg))))
+
+    FIM[1, 2] = (s**2) * (sum(sum((Bbc) / (I + backg))))
+    FIM[1, 3] = (s**2) * (sum(sum((Bbd) / (I + backg))))
+    FIM[1, 4] = (s**2) * (sum(sum((Bbe) / (I + backg))))
+    FIM[1, 5] = (s**2) * (sum(sum((Bbf) / (I + backg))))
+
+    FIM[2, 3] = (s**2) * (sum(sum((Bcd) / (I + backg))))
+    FIM[2, 4] = (s**2) * (sum(sum((Bce) / (I + backg))))
+    FIM[2, 5] = (s**2) * (sum(sum((Bcf) / (I + backg))))
+
+    FIM[3, 4] = (s**2) * (sum(sum((Bde) / (I + backg))))
+    FIM[3, 5] = (s**2) * (sum(sum((Bdf) / (I + backg))))
+
+    FIM[4, 5] = (s**2) * (sum(sum((Bef) / (I + backg))))
+
+    FIM = FIM + np.transpose(FIM)
+>>>>>>> main
 
     return FIM
 
 def symmCone2SecM(z):
+<<<<<<< HEAD
     # print(z.type())
     z = torch.reshape(torch.tensor(z, dtype=torch.double), (1, 4))
     # print(z.type())
+=======
+    z = np.reshape(z, (1, 4), order='F')
+>>>>>>> main
     muxx = z[:,3] * z[:,0]**2 + (1 - z[:,3]) / 3
     muyy = z[:,3] * z[:,1]**2 + (1 - z[:,3]) / 3
     muzz = z[:,3] * z[:,2]**2 + (1 - z[:,3]) / 3
     muxy = z[:,3] * z[:,0] * z[:,1]
     muxz = z[:,3] * z[:,0] * z[:,2]
     muyz = z[:,3] * z[:,1] * z[:,2]
+<<<<<<< HEAD
     out = torch.tensor([[muxx[0]], [muyy[0]], [muzz[0]], [muxy[0]], [muxz[0]], [muyz[0]]])
+=======
+    out = np.array([[muxx[0]], [muyy[0]], [muzz[0]], [muxy[0]], [muxz[0]], [muyz[0]]])
+>>>>>>> main
     return out
 
 
 def objective_fun(z, FIM, secM):
+<<<<<<< HEAD
     sC2SM = symmCone2SecM(z)
     return torch.matmul(torch.matmul((sC2SM.T - secM), FIM), (sC2SM - secM.T))[0,0]
 
@@ -193,6 +294,17 @@ def constraint(z):
     '''Constraint function'''
     return torch.sum(torch.tensor(z[0:3])**2, 0) - 1
 
+=======
+    '''Objective function, test lambda objective function first'''
+    sC2SM = symmCone2SecM(z)
+    return np.matmul(np.matmul((np.transpose(sC2SM) - secM), FIM), (sC2SM - np.transpose(secM)))[0,0]
+
+def constraint(z):
+    '''Constraint function'''
+    return np.sum(z[0:3]**2, 0) - 1
+
+# compare estimated and ground truth signatures for each voxel
+>>>>>>> main
 def acc_eval(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est, total_voxel_num):
     pointer_gt = 0 
     pointer_est = 0
@@ -211,6 +323,10 @@ def acc_eval(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est, 
     fn = np.array([])
     fn_z = np.array([])
 
+<<<<<<< HEAD
+=======
+    # loop through all voxels 
+>>>>>>> main
     while (pointer_gt < len(x_gt) and pointer_est < len(x_est)):
 
         if y_gt[pointer_gt][0] > y_est[pointer_est][0]:
@@ -234,6 +350,7 @@ def acc_eval(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est, 
                     fn_z = np.append(fn_z,z_gt[pointer_gt][0])
                     pointer_gt += 1
                 elif z_gt[pointer_gt][0] == z_est[pointer_est][0]:
+<<<<<<< HEAD
                     a_mu = m1_gt[pointer_gt,:3]
                     b_mu = m1_est[pointer_est,:3]
                     a_gamma = m1_gt[pointer_gt,3]
@@ -243,6 +360,21 @@ def acc_eval(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est, 
                     acc_orientation = np.append(acc_orientation,np.min(np.asarray([acc1,acc2])))
                     acc_gamma = np.append(acc_gamma, np.abs(a_gamma-b_gamma))
                     acc_s = np.append(acc_s, np.abs(s_gt[pointer_gt][0]-s_est[pointer_est][0])/s_gt[pointer_gt][0])
+=======
+                    a_mu = m1_gt[pointer_gt,:3] # a_mu = ground truth first moment [mu_x, mu_y, mu_z]
+                    b_mu = m1_est[pointer_est,:3] # b_mu = estimated first moment [mu_xhat, mu_yhat, mu_zhat]
+                    a_gamma = m1_gt[pointer_gt,3] # ground truth gamma
+                    b_gamma = m1_est[pointer_est,3] # estimated gamma
+
+                    # calculate angle difference between ground truth and estimate in both dipole directions i.e. acc1 and acc2, pick the value that minimizes the angle difference
+                    acc1 = np.degrees(np.arccos(np.sum(a_mu*b_mu)/(np.sqrt(np.sum(a_mu**2))*np.sqrt(np.sum(b_mu**2)))))
+                    acc2 = np.degrees(np.arccos(np.sum(-a_mu*b_mu)/(np.sqrt(np.sum(a_mu**2))*np.sqrt(np.sum(b_mu**2)))))
+                    acc_orientation = np.append(acc_orientation,np.min(np.asarray([acc1,acc2])))
+
+                    # store the estimated gamma values
+                    acc_gamma = np.append(acc_gamma, b_gamma)
+                    acc_s = np.append(acc_s, (s_gt[pointer_gt][0]-s_est[pointer_est][0])/s_gt[pointer_gt][0])
+>>>>>>> main
                     acc_z = np.append(acc_z, z_gt[pointer_gt][0])
                     acc_x = np.append(acc_x, x_gt[pointer_gt][0])
                     acc_y = np.append(acc_y, y_gt[pointer_gt][0])
@@ -250,8 +382,13 @@ def acc_eval(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est, 
                     if a_mu[1]==0 and a_mu[0] == 0:
                         acc_gt_phi = np.append(acc_gt_phi,np.nan)
                     else:
+<<<<<<< HEAD
                         acc_gt_phi = np.append(acc_gt_phi,np.degrees(np.arctan2(a_mu[1],a_mu[0])))
                     acc_gt_s = np.append(acc_gt_s,s_gt[pointer_gt][0])
+=======
+                        acc_gt_phi = np.append(acc_gt_phi,np.degrees(np.arctan2(a_mu[1],a_mu[0]))) # calculate and append ground truth phi value
+                    acc_gt_s = np.append(acc_gt_s,s_gt[pointer_gt][0]) # append ground truth signal
+>>>>>>> main
                     pointer_gt += 1
                     pointer_est += 1
 
