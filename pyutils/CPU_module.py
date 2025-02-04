@@ -2,12 +2,13 @@ import numpy as np
 
 class smolm():
 
-    '''A class that characterize the optical system. '''
+    '''A class that characterizes the optical system. '''
     
     def __init__(self, psf, obj_size):
         super(smolm, self).__init__()
 
         self.channel = psf.shape[0]
+        print(self.channel)
 
         # storing the size of the psf
         self.psf_size = dict()
@@ -27,11 +28,13 @@ class smolm():
         if self.psf_size['orientation'] != self.obj_size['orientation']:
             raise Exception('The number of orientation moments does not match')
         if self.psf_size['depth'] != self.obj_size['depth']:
-            raise Exception('The number of z stack does not match')
+            raise Exception('The number of z stacks does not match')
         
         # padding 0 - assuming the psf size is smaller than the object
         w_diff = self.obj_size['width']-self.psf_size['width']
         h_diff = self.obj_size['height']-self.psf_size['height']
+
+        print(w_diff); print(h_diff)
 
         w_left_pad = np.int16(np.floor(w_diff/2))
         w_right_pad = np.int16(np.ceil(w_diff/2))

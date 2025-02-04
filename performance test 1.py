@@ -11,7 +11,7 @@ import pyutils.CPU_module as cpu
 import pandas as pd 
 from pyutils import m2_to_m1 as convert
 
-FLAG_TRACE_LOSS = False
+FLAG_TRACE_LOSS = True
 FLAG_SAVE_RESULT = True
 
 ### CUDA setup ###
@@ -34,11 +34,11 @@ initial_file_list = ['flat ring initial','flat ring initial','flat ring initial'
                 'hemisphere initial','hemisphere initial','hemisphere initial']
 
 num_of_trials = 5
-factor = 10e5
+factor = 1e5 # why is this != performance test 2's factor? jasmine: they should be the same
 
 ### lambda setup ###
-l1_lb = 5000
-l1_up = 15000
+l1_lb = 150
+l1_up = 150
 l1_step_num = 11
 tv_lb = 0
 tv_up = 0
@@ -105,3 +105,5 @@ for idx in range (len(object_file_list)):
         plt.xlabel('iteration')
         plt.ylabel('total loss')
         plt.show()
+
+print("Completed");

@@ -11,6 +11,8 @@ import pyutils.plot_func as plot
 from scipy import ndimage
 import pyutils.m2_to_m1 as convert
 
+# starts with an image, performs deconvolution to estimate the signatures of an object
+
 ### CUDA setup ###
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Using ' + device)
@@ -39,6 +41,7 @@ optim_param_iso['lambda_I'] = 5
 
 ### file setup ###
 psf = loadmat(os.path.join(psf_dir, psf_file+'.mat'))['dsf']
+
 
 # psf = np.transpose(psf,(0,1,2,4,3))
 # mxx = psf[:,1,:,:,:]
@@ -69,12 +72,13 @@ plot.plot_img_tighter(image, 'Image of ' + image_file)
 initial = gpu.initialization(psf, object_size, object_iso_size, image, optim_param_iso['lr'], 
                                 optim_param_iso['max_iter'], optim_param_iso['lambda_L1'], 
                                 optim_param_iso['lambda_TV'], optim_param_iso['lambda_I'], device)
-# plot.video_obj(initial,'Est initial of ' + image_file, 'initial Est')
+plot.video_obj(initial,'Est initial of ' + image_file, 'initial Est')
 
 ### deconvolution ###
 obj_est, loss = gpu.estimate(psf, initial, 'dipole', image, optim_param['lr'], 
                              optim_param['max_iter'], optim_param['lambda_L1'], 
                              optim_param['lambda_TV'], optim_param['lambda_I'], device)
+
 
 ### check the result ###
 img_est = model_cpu.forward(obj_est)

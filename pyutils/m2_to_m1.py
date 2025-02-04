@@ -175,6 +175,7 @@ def constraint(z):
     '''Constraint function'''
     return np.sum(z[0:3]**2, 0) - 1
 
+# compare estimated and ground truth signatures for each voxel
 def acc_eval(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est, total_voxel_num):
     pointer_gt = 0 
     pointer_est = 0
@@ -193,6 +194,7 @@ def acc_eval(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est, 
     fn = np.array([])
     fn_z = np.array([])
 
+    # loop through all voxels 
     while (pointer_gt < len(x_gt) and pointer_est < len(x_est)):
 
         if y_gt[pointer_gt][0] > y_est[pointer_est][0]:
@@ -216,13 +218,17 @@ def acc_eval(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est, 
                     fn_z = np.append(fn_z,z_gt[pointer_gt][0])
                     pointer_gt += 1
                 elif z_gt[pointer_gt][0] == z_est[pointer_est][0]:
-                    a_mu = m1_gt[pointer_gt,:3]
-                    b_mu = m1_est[pointer_est,:3]
-                    a_gamma = m1_gt[pointer_gt,3]
-                    b_gamma = m1_est[pointer_est,3]
+                    a_mu = m1_gt[pointer_gt,:3] # a_mu = ground truth first moment [mu_x, mu_y, mu_z]
+                    b_mu = m1_est[pointer_est,:3] # b_mu = estimated first moment [mu_xhat, mu_yhat, mu_zhat]
+                    a_gamma = m1_gt[pointer_gt,3] # ground truth gamma
+                    b_gamma = m1_est[pointer_est,3] # estimated gamma
+
+                    # calculate angle difference between ground truth and estimate in both dipole directions i.e. acc1 and acc2, pick the value that minimizes the angle difference
                     acc1 = np.degrees(np.arccos(np.sum(a_mu*b_mu)/(np.sqrt(np.sum(a_mu**2))*np.sqrt(np.sum(b_mu**2)))))
                     acc2 = np.degrees(np.arccos(np.sum(-a_mu*b_mu)/(np.sqrt(np.sum(a_mu**2))*np.sqrt(np.sum(b_mu**2)))))
                     acc_orientation = np.append(acc_orientation,np.min(np.asarray([acc1,acc2])))
+
+                    # store the estimated gamma values
                     acc_gamma = np.append(acc_gamma, b_gamma)
                     acc_s = np.append(acc_s, (s_gt[pointer_gt][0]-s_est[pointer_est][0])/s_gt[pointer_gt][0])
                     acc_z = np.append(acc_z, z_gt[pointer_gt][0])
@@ -232,8 +238,8 @@ def acc_eval(s_gt, m1_gt, z_gt, x_gt, y_gt, s_est, m1_est, z_est, x_est, y_est, 
                     if a_mu[1]==0 and a_mu[0] == 0:
                         acc_gt_phi = np.append(acc_gt_phi,np.nan)
                     else:
-                        acc_gt_phi = np.append(acc_gt_phi,np.degrees(np.arctan2(a_mu[1],a_mu[0])))
-                    acc_gt_s = np.append(acc_gt_s,s_gt[pointer_gt][0])
+                        acc_gt_phi = np.append(acc_gt_phi,np.degrees(np.arctan2(a_mu[1],a_mu[0]))) # calculate and append ground truth phi value
+                    acc_gt_s = np.append(acc_gt_s,s_gt[pointer_gt][0]) # append ground truth signal
                     pointer_gt += 1
                     pointer_est += 1
 

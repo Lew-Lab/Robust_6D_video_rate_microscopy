@@ -1,7 +1,7 @@
 The struct files name: 
-B_ZScanned_zfxxx(the position of the NFP*1e9)_xxx(side of the DSF in pixel)_xxx(the upper limit of the DSF).mat
+B_ZScanned_zfxxx(the position of the NFP*1e9)_xxx(size of the DSF in pixel)_xxx(the upper limit of the DSF).mat
 
 The DSF mat files name: 
-MVR_zfxxx(the position of the NFP*1e9)_pixelsz/3pixelsz(how the DSF is sampled)_zxxx(#z slices).mat
+MVR_zfxxx(the position of the NFP*1e9)_pixelsz/3pixelsz(sampling interval e.g. pixelsz is sampling at every pixel height, 3pixelsz is sampling at every 3 pixel heights)_zxxx(#z slices).mat
 
-Choose the proper file before load it!
+Choose the proper file before loading!
